@@ -6,6 +6,7 @@ It uses a neural network to identify a face in the image and infer its center an
 
 ## Installation
 WORK IN PROGESS!
+
 TelloPy:
 ```
 git clone https://github.com/hanyazou/TelloPy
