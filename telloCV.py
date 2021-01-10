@@ -28,7 +28,7 @@ import numpy
 import av
 import cv2
 from pynput import keyboard
-from cnn_tracker import Tracker
+from face_rec_tracker import Tracker
 import sys
 
 def main():
@@ -192,13 +192,13 @@ class TelloCV(object):
         image = self.tracker.draw_arrows(image)
 
         distance = 100
-        rad_min = 320
-        rad_max = 360
+        distance_measure_min = 320  # Either radius or area
+        distance_measure_max = 360
         cmd = ""
         if self.tracking:
             xoff = readings[-1][0]  #TODO: add NN
             yoff = readings[-1][1]
-            radius = readings[-1][2]
+            distance_measure = readings[-1][2]  # Either radius or area
             print(readings)
             print(readings[-1])
             if xoff < -distance:
@@ -209,9 +209,9 @@ class TelloCV(object):
                 cmd = "down"
             elif yoff > distance:
                 cmd = "up"
-            elif radius <= rad_min:
+            elif distance_measure <= distance_measure_min:
                 cmd = "forward"
-            elif radius >= rad_max:
+            elif distance_measure >= distance_measure_max:
                 cmd = "backward"
             else:
                 if self.track_cmd is not "":

@@ -71,6 +71,7 @@ def detect(save_img=False):
         pred = model(img, augment=opt.augment)[0]
 
         # Apply NMS
+        print(opt.agnostic_nms)
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
         t2 = time_synchronized()
 
@@ -98,12 +99,12 @@ def detect(save_img=False):
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f'{n} {names[int(c)]}s, '  # add to string
-
+                    print(c, names[int(c)])
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
+                        line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format                  
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 

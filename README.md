@@ -21,7 +21,11 @@ All control commands are described in telloCV.py.
 ## Files
 telloCV.py: controller
 
-cnn_tracker.py: NN tracker, at the moment it tracks the most prominent person in the image.
+face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py"
+
+svm.py: Creates a SVM capable of recognize faces.
+
+cnn_tracker.py: NN tracker, at the moment I'm trying to train a network to recognize faces.
 
 tracker.py: tracker of [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018. (In order to work requires a few changes in telloCV.py)
 
