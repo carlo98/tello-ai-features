@@ -47,9 +47,9 @@ half = device.type != 'cpu'  # half precision only supported on CUDA
 
 IMG_S = 416
 WEIGHTS = "models_my/me/best.pt"
-CONF_THRES = 0.05
-IOU_THRES = 0.05
-CLASSES = 1
+CONF_THRES = 0.50
+IOU_THRES = 0.45
+CLASSES = 3
 
 ### END YOLO5 ###
 
@@ -187,9 +187,9 @@ class Tracker:
         print("Inference time: ",time.time()-start_time)
         
         
-        print(detections)
-        # only proceed if at least one contour was found
-        if len(detections) != 1:
+        for i, det in enumerate(detections):
+            # Rescale boxes from img_size to im0 size
+            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], img.shape).round()
             ymin, xmin, ymax, xmax = detections
             ymin *= self.height
             ymax *= self.height
