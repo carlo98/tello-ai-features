@@ -26,128 +26,32 @@ python tracking.py
 @copyright 2018 see license file for details
 """
 
-#Tensorflow
-import tensorflow as tf
-import pathlib
-import time
-from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as viz_utils
+### YOLO5 ###
+
+import torch
+import torch.backends.cudnn as cudnn
+from numpy import random
+
+from models.experimental import attempt_load
+from utils.datasets import LoadStreams, LoadImages
+from utils.general import check_img_size, check_requirements, non_max_suppression, apply_classifier, scale_coords, \
+    xyxy2xywh, strip_optimizer, set_logging, increment_path
+from utils.plots import plot_one_box
+from utils.torch_utils import select_device, load_classifier, time_synchronized
 import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-import warnings
-warnings.filterwarnings('ignore')   # Suppress Matplotlib warnings
-import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'    # Suppress TensorFlow logging (1)
-tf.get_logger().setLevel('ERROR')
+# Initialize
+set_logging()
+device = select_device('cpu')
+half = device.type != 'cpu'  # half precision only supported on CUDA
 
-# Download and extract model
-def download_model(model_name, model_date):
-    base_url = 'http://download.tensorflow.org/models/object_detection/tf2/'
-    model_file = model_name + '.tar.gz'
-    model_dir = tf.keras.utils.get_file(fname=model_name,
-                                        origin=base_url + model_date + '/' + model_file,
-                                        untar=True)
-    return str(model_dir)
+IMG_S = 416
+WEIGHTS = "models_my/me/best.pt"
+CONF_THRES = 0.05
+IOU_THRES = 0.05
+CLASSES = 1
 
-MODEL_DATE = '20200711'
-MODEL_NAME = 'ssd_mobilenet_v2_320x320_coco17_tpu-8'
-PATH_TO_MODEL_DIR = download_model(MODEL_NAME, MODEL_DATE)
-
-# Download labels file
-def download_labels(filename):
-    base_url = 'https://raw.githubusercontent.com/tensorflow/models/master/research/object_detection/data/'
-    label_dir = tf.keras.utils.get_file(fname=filename,
-                                        origin=base_url + filename,
-                                        untar=False)
-    label_dir = pathlib.Path(label_dir)
-    return str(label_dir)
-
-LABEL_FILENAME = 'mscoco_label_map.pbtxt'
-PATH_TO_LABELS = download_labels(LABEL_FILENAME)
-
-PATH_TO_SAVED_MODEL = PATH_TO_MODEL_DIR + "/saved_model"
-
-def load_model():
-    print('Loading model...', end='')
-    start_time = time.time()
-
-    # Load saved model and build the detection function
-    detect_fn = tf.saved_model.load(PATH_TO_SAVED_MODEL)
-
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    print('Done! Took {} seconds'.format(elapsed_time))
-    
-    return detect_fn
-
-
-category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS,
-                                                                    use_display_name=True)
-                                                                
-
-def detect(image_np, detect_fn):
-
-    print('Running inference.')
-    # Things to try:
-    # Flip horizontally
-    # image_np = np.fliplr(image_np).copy()
-
-    # Convert image to grayscale
-    # image_np = np.tile(
-    #     np.mean(image_np, 2, keepdims=True), (1, 1, 3)).astype(np.uint8)
-
-    # The input needs to be a tensor, convert it using `tf.convert_to_tensor`.
-    input_tensor = tf.convert_to_tensor(image_np)
-    # The model expects a batch of images, so add an axis with `tf.newaxis`.
-    input_tensor = input_tensor[tf.newaxis, ...]
-
-    # input_tensor = np.expand_dims(image_np, 0)
-    detections = detect_fn(input_tensor)
-
-    # All outputs are batches tensors.
-    # Convert to numpy arrays, and take index [0] to remove the batch dimension.
-    # We're only interested in the first num_detections.
-    num_detections = int(detections.pop('num_detections'))
-    detections = {key: value[0, :num_detections].numpy()
-                   for key, value in detections.items()}
-    detections['num_detections'] = num_detections
-
-    # detection_classes should be ints.
-    detections['detection_classes'] = (detections['detection_classes'].astype(np.int64))
-    #print(detections['detection_classes'])
-    
-    #Filtering on target
-    indexes = detections['detection_classes'] == 1
-    detections['detection_classes'] = detections['detection_classes'][indexes]
-    detections['detection_boxes'] = detections['detection_boxes'][indexes]
-    detections['detection_scores'] = detections['detection_scores'][indexes]
-    
-    #Only best one
-    if len(detections['detection_scores'])>0:
-        best_index = [np.argmax(detections['detection_scores'])]
-        detections['detection_classes'] = detections['detection_classes'][best_index]
-        detections['detection_boxes'] = detections['detection_boxes'][best_index]
-        detections['detection_scores'] = detections['detection_scores'][best_index]
-
-        #image_np_with_detections = image_np.copy()
-
-        #viz_utils.visualize_boxes_and_labels_on_image_array(
-    #      image_np_with_detections,
-    #      detections['detection_boxes'],
-    #      detections['detection_classes'],
-    #      detections['detection_scores'],
-    #      category_index,
-    #      use_normalized_coordinates=True,
-    #      max_boxes_to_draw=200,
-    #      min_score_thresh=.30,
-    #      agnostic_mode=False)
-        #show(image_np_with_detections)
-    
-        return detections['detection_boxes'][0]
-    return -1, -1, -1, -1
-#
+### END YOLO5 ###
 
 # import the necessary packages
 import argparse
@@ -177,11 +81,13 @@ def main():
     stream = args.get("video", False)
     frame = get_frame(vid_stream, stream)
     height, width = frame.shape[0], frame.shape[1]
-    tracker = Tracker(height, width)
+    tracker = Tracker()
+    tracker.init_video(height, width)
 
     # keep looping until no more frames
     more_frames = True
     while more_frames:
+        frame = cv2.resize(frame, (IMG_S, IMG_S))
         tracker.track(frame)
         frame = tracker.draw_arrows(frame)
         show(frame)
@@ -232,7 +138,19 @@ class Tracker:
     """
 
     def __init__(self):
-        self.detect_fn = load_model()
+        # Load model
+        self.model = attempt_load(WEIGHTS, map_location=device)  # load FP32 model
+        self.imgsz = check_img_size(IMG_S, s=self.model.stride.max())  # check img_size
+        if half:
+            self.model.half()  # to FP16
+            
+        # Get names and colors
+        self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
+        self.colors = [[random.randint(0, 255) for _ in range(3)] for _ in self.names]
+        
+        img = torch.zeros((1, 3, self.imgsz, self.imgsz), device=device)  # init img
+        _ = self.model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+
         
     def init_video(self, height, width):
         self.height = height
@@ -252,11 +170,26 @@ class Tracker:
         return frame
 
     def track(self, frame):
-        """Cnn tracker"""
-        detections = detect(frame, self.detect_fn)
-
+        """NN Tracker"""
+        img = np.reshape(frame, (1, 3, self.imgsz, self.imgsz))
+        img = torch.from_numpy(img).to(device)
+        img = img.half() if half else img.float()  # uint8 to fp16/32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
+            
+        # Inference
+        start_time = time.time()
+        detections = self.model(img)[0]
+        print(detections)
+        # Apply NMS
+        detections = non_max_suppression(detections, CONF_THRES, IOU_THRES, classes=CLASSES)#, agnostic=opt.agnostic_nms)
+        print("Inference time: ",time.time()-start_time)
+        
+        
+        print(detections)
         # only proceed if at least one contour was found
-        if detections[0] != -1:
+        if len(detections) != 1:
             ymin, xmin, ymax, xmax = detections
             ymin *= self.height
             ymax *= self.height

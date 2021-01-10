@@ -24,5 +24,5 @@ cnn_tracker.py: NN tracker, at the moment it tracks the most prominent person in
 
 tracker.py: tracker of [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018. (In order to work requires a few changes in telloCV.py)
 
-eager_few_shot_od_training_tf2_colab.ipynb: Colab notebook taken from [tensorflow repo](https://github.com/tensorflow/models/tree/master/research/object_detection/colab_tutorials), used to perform transfer learning.
+yolo5_boxes.ipynb: Colab notebook taken from [Object detection](https://laptrinhx.com/how-to-train-a-custom-object-detection-model-with-yolo-v5-4206857070/), used to train object detector.
 

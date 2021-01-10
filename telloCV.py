@@ -61,6 +61,7 @@ def main():
                     time_base = 1.0/60
                 else:
                     time_base = frame.time_base
+                
                 frame_skip = int((time.time() - start_time)/time_base)
     except Exception as ex:
         exc_type, exc_value, exc_traceback = sys.exc_info()
