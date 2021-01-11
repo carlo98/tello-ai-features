@@ -37,6 +37,8 @@ import face_recognition
 from sklearn import svm
 import numpy as np
 
+OBJ = 'person_2'
+
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
     arg_parse = argparse.ArgumentParser()
@@ -154,7 +156,11 @@ class Tracker:
                 face_names.append(*name)
             print("Inference time: ", time.time()-start_time)
         #process_this_frame = not process_this_frame
-
+        
+        if len(face_names) > 0:
+            indexes_to_keep = (face_names == OBJ)
+            face_names = [face_names[indexes_to_keep]]
+            face_locations = [face_locations[indexes_to_keep]]
 
         # Display the results
         for (top, right, bottom, left), name in zip(face_locations, face_names):
