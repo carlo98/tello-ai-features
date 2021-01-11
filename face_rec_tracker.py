@@ -175,6 +175,7 @@ class Tracker:
        
             x = (right-left)/2
             y = (top-bottom)/2
+            print((top, bottom, right, left))
             #radius = np.max([x, y])
             x_c = int(x+left)
             y_c = int(y+bottom)
@@ -183,7 +184,7 @@ class Tracker:
 
             self.xoffset = int(x_c - self.midx)
             self.yoffset = int(self.midy - y_c)
-            area = (4*x*y)
+            area = (-4*x*y) # Minus due to y-axis
         if len(face_names) == 0:
             self.xoffset = 0
             self.yoffset = 0

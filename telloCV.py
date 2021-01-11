@@ -191,9 +191,9 @@ class TelloCV(object):
         #xoff, yoff = self.tracker.track(image)
         #image = self.tracker.draw_arrows(image)
 
-        distance = 85
-        area_min = 400000  # Either radius or area
-        area_max = 600000
+        distance = 100
+        area_min = 4500  # Either radius or area
+        area_max = 5500
         #radius_min = 300
         #radius_max = 600
         cmd = ""
@@ -210,10 +210,10 @@ class TelloCV(object):
                 cmd = "down"
             elif yoff > distance:
                 cmd = "up"
-            #elif distance_measure <= area_min:
-            #    cmd = "forward"
-            #elif distance_measure >= area_max:
-            #    cmd = "backward"
+            elif distance_measure <= area_min:
+                cmd = "forward"
+            elif distance_measure >= area_max:
+                cmd = "backward"
             else:
                 if self.track_cmd is not "":
                     getattr(self.drone, self.track_cmd)(0)
