@@ -55,7 +55,7 @@ def main():
                     continue
                 start_time = time.time()
                 image = tellotrack.process_frame(frame)
-                cv2.imshow('tello', image)
+                #cv2.imshow('tello', image)
                 _ = cv2.waitKey(1) & 0xFF
                 if frame.time_base < 1.0/60:
                     time_base = 1.0/60
@@ -83,7 +83,7 @@ class TelloCV(object):
         self.tracking = False
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
-        self.speed = 50
+        self.speed = 30
         self.track_cmd = ""
         self.tracker = Tracker()
         self.drone = tellopy.Tello()
@@ -189,17 +189,18 @@ class TelloCV(object):
 
         readings = self.tracker.track(image)
         #xoff, yoff = self.tracker.track(image)
-        image = self.tracker.draw_arrows(image)
+        #image = self.tracker.draw_arrows(image)
 
-        distance = 100
-        distance_measure_min = 320  # Either radius or area
-        distance_measure_max = 360
+        distance = 85
+        area_min = 400000  # Either radius or area
+        area_max = 600000
+        #radius_min = 300
+        #radius_max = 600
         cmd = ""
         if self.tracking:
             xoff = readings[-1][0]  #TODO: add NN
             yoff = readings[-1][1]
             distance_measure = readings[-1][2]  # Either radius or area
-            print(readings)
             print(readings[-1])
             if xoff < -distance:
                 cmd = "counter_clockwise"
@@ -209,14 +210,15 @@ class TelloCV(object):
                 cmd = "down"
             elif yoff > distance:
                 cmd = "up"
-            elif distance_measure <= distance_measure_min:
-                cmd = "forward"
-            elif distance_measure >= distance_measure_max:
-                cmd = "backward"
+            #elif distance_measure <= area_min:
+            #    cmd = "forward"
+            #elif distance_measure >= area_max:
+            #    cmd = "backward"
             else:
                 if self.track_cmd is not "":
                     getattr(self.drone, self.track_cmd)(0)
                     self.track_cmd = ""
+            print(cmd)
 
 
         if cmd is not self.track_cmd:

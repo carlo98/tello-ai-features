@@ -144,7 +144,6 @@ class Tracker:
         if process_this_frame:
             # Find all the faces and face encodings in the current frame of video
             face_locations = face_recognition.face_locations(small_frame, model='ccn')
-            print(face_locations)
             face_encodings = face_recognition.face_encodings(small_frame, face_locations)
 
             face_names = []
@@ -153,8 +152,8 @@ class Tracker:
                 name = self.clf.predict([face_encoding])
 
                 face_names.append(*name)
-            print(time.time()-start_time)
-        process_this_frame = not process_this_frame
+            print("Inference time: ", time.time()-start_time)
+        #process_this_frame = not process_this_frame
 
 
         # Display the results
@@ -167,6 +166,7 @@ class Tracker:
 
             # Draw a box around the face
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+            
 
             # Draw a label with a name below the face
             cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
@@ -174,22 +174,28 @@ class Tracker:
             cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
        
             x = (right-left)/2
-            y = (bottom-top)/2
-            radius = np.max([(right-left)/2, (bottom-top)/2])
-            x = x+left
-            y = y+top
+            y = (top-bottom)/2
+            #radius = np.max([x, y])
+            x_c = int(x+left)
+            y_c = int(y+bottom)
+            
+            cv2.circle(frame, (x_c, y_c), 2, (0, 0, 255), 2)
 
-            self.xoffset = int(right - self.midx)
-            self.yoffset = int(self.midy - top)
+            self.xoffset = int(x_c - self.midx)
+            self.yoffset = int(self.midy - y_c)
             area = (4*x*y)
         if len(face_names) == 0:
             self.xoffset = 0
             self.yoffset = 0
             area = 0
         # Display the resulting image
+        self.draw_arrows(frame)
         show(frame)
         self.previous_detection.append((self.xoffset, self.yoffset, area))
         self.previous_detection.pop(0)
+        print(frame.shape)
+        print((self.xoffset, self.yoffset, area))
+        print((self.midx, self.midy))
         return self.previous_detection
 
 if __name__ == '__main__':
