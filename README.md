@@ -23,9 +23,9 @@ telloCV.py: controller
 
 face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py"
 
-svm.py: Creates a SVM capable of recognize faces.
+svm.py: Creates a SVM capable of recognize faces, at the top of the file is shown how one should organize the images. [Face recognition](https://github.com/ageitgey/face_recognition)
 
-cnn_tracker.py: NN tracker, at the moment I'm trying to train a network to recognize faces.
+yolo_tracker.py: NN tracker, at the moment I'm trying to train a network to recognize faces (Work in progress, pay attention to distance measure in telloCV.py).
 
 tracker.py: tracker of [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018. (In order to work requires a few changes in telloCV.py)
 
