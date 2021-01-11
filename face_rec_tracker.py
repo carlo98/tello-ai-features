@@ -156,14 +156,13 @@ class Tracker:
                 face_names.append(*name)
             print("Inference time: ", time.time()-start_time)
         #process_this_frame = not process_this_frame
-        
-        if len(face_names) > 0:
-            indexes_to_keep = (face_names == OBJ)
-            face_names = [face_names[indexes_to_keep]]
-            face_locations = [face_locations[indexes_to_keep]]
 
+        found = False
         # Display the results
         for (top, right, bottom, left), name in zip(face_locations, face_names):
+            if name != OBJ:
+                continue
+            found = True
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             top *= int(2)
             right *= int(2)
@@ -191,7 +190,7 @@ class Tracker:
             self.xoffset = int(x_c - self.midx)
             self.yoffset = int(self.midy - y_c)
             area = (-4*x*y) # Minus due to y-axis
-        if len(face_names) == 0:
+        if not found:
             self.xoffset = 0
             self.yoffset = 0
             area = 0
