@@ -1,11 +1,15 @@
 # tello-rl-tracker
-Autonomous deep reinforcement learning agent tracker for Tello drones. It uses python 3 and [TelloPy](https://github.com/hanyazou/TelloPy).
+Autonomous deep reinforcement learning agent tracker for Tello drones. It uses python 3.7 and [TelloPy](https://github.com/hanyazou/TelloPy).
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
 It uses a neural network to identify a face in the image and infer its center and radius, then (STILL TO BE IMPLEMENTED) uses a deepRL agent to drive the tello in such a way to keep the face at the center of the image.
 
 ## Installation
-WORK IN PROGESS!
+Install anaconda and then:
+```
+conda create -n <env_name> python=3.7
+pip install -r requirements.txt
+```
 
 TelloPy:
 ```
@@ -31,3 +35,5 @@ tracker.py: tracker of [Ubotica telloCV](https://github.com/Ubotica/telloCV), No
 
 yolo5_boxes.ipynb: Colab notebook taken from [Object detection](https://laptrinhx.com/how-to-train-a-custom-object-detection-model-with-yolo-v5-4206857070/), used to train object detector.
 
+### Warning
+The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fitted with your images, using the script "svm.py".
