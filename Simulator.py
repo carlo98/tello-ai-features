@@ -68,10 +68,12 @@ class SimulatorEnv:
         prev_y = prev_y * self.width
         prev_w = prev_w * self.width
         cv2.waitKey(1)
-        prev_rem_x = self.width - (prev_x + prev_w)
+        #prev_rem_x = self.width - (prev_x + prev_w)
+        prev_rem_x = int(self.width / 2)
         prev_diff_x = abs(prev_x - prev_rem_x)
 
-        prev_rem_y = self.width - (prev_y + prev_w)
+        #prev_rem_y = self.width - (prev_y + prev_w)
+        prev_rem_y = int(self.height / 2)
         prev_diff_y = abs(prev_y-prev_rem_y)
 
         done = False
@@ -100,10 +102,12 @@ class SimulatorEnv:
         #cv2.imshow('Frame', frame)
 
         if not done:
-            rem = self.width - (curr_x + curr_w)
+            #rem = self.width - (curr_x + curr_w)
+            rem = int(self.width / 2)
             diff_x = abs(curr_x - rem)
 
             remy = self.width - (curr_y + curr_w)
+            remy = int(self.height/2)
             diff_y = abs(curr_y - remy)
 
             if (abs(curr_w - int(self.width / 5)) <= 10) and (diff_y < 20) and (diff_x < 20):
@@ -111,9 +115,9 @@ class SimulatorEnv:
                 reward = reward + 10.0
             else:
                 #print('diff', diff)
-                if diff_x > 30 and diff_x < prev_diff_x:
+                if diff_x > 20 and diff_x < prev_diff_x:
                     reward = reward + (0.003 * (self.width-diff_x))
-                elif diff_y > 30 and diff_y < prev_diff_y:
+                elif diff_y > 20 and diff_y < prev_diff_y:
                     reward = reward + (0.001 * (self.width - diff_y))
                 elif curr_w - int(self.width / 5) > 10:
                     if curr_w < prev_w:

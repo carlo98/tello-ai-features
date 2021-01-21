@@ -17,19 +17,19 @@ class ReinforceAgent():
         self.dirPath = "saved_models/"
 
         self.load_model = False
-        self.load_episode = 3473
+        self.load_episode = 0
         self.state_size = state_size
         self.action_size = action_size
         self.episode_step = 6000
         self.target_update = 2000
         self.discount_factor = 0.99
-        self.learning_rate = 0.0020
+        self.learning_rate = 0.0030
         self.epsilon = 0.85
         self.epsilon_decay = 0.99
         self.epsilon_min = 0.05
-        self.batch_size = 16
-        self.train_start = 1500
-        self.training_frequency = 150
+        self.batch_size = 64
+        self.train_start = 1000
+        self.training_frequency = 10 # In episodes
         self.memory = deque(maxlen=1000000)
 
         self.model = self.buildModel()
@@ -42,7 +42,7 @@ class ReinforceAgent():
 
             with open(self.dirPath+str(self.load_episode)+'.json') as outfile:
                 param = json.load(outfile)
-                self.epsilon = 0.0 #param.get('epsilon')
+                self.epsilon = 0.0#param.get('epsilon')
                 self.load_episode = 0
 
     def buildModel(self):
@@ -142,23 +142,8 @@ if __name__ == '__main__':
 
             agent.appendMemory(state, action, reward, next_state, done)
             
-            trained_step = False
-            if len(agent.memory) >= agent.train_start and (len(agent.memory) % agent.training_frequency) == 0:
-                print("Training!")
-                trained_step = True
-                trained_ep = True
-                if global_step <= agent.target_update:
-                    agent.trainModel()
-                else:
-                    agent.trainModel(True)
-
             score += reward
             state = next_state
-
-            if trained_step:
-                agent.model.save(agent.dirPath + str(e) + '.h5')
-                with open(agent.dirPath + str(e) + '.json', 'w') as outfile:
-                    json.dump(param_dictionary, outfile)
 
             if t >= 500:
                 print("Done!")
@@ -180,6 +165,19 @@ if __name__ == '__main__':
             global_step += 1
             if global_step % agent.target_update == 0:
                 print("UPDATE TARGET NETWORK")
+                
+        if len(agent.memory) >= agent.train_start and (e % agent.training_frequency) == 0:
+            print("Training!")
+            trained_ep = True
+            if global_step <= agent.target_update:
+                agent.trainModel()
+            else:
+                agent.trainModel(True)
+
+        if trained_ep:
+            agent.model.save(agent.dirPath + str(e) + '.h5')
+            with open(agent.dirPath + str(e) + '.json', 'w') as outfile:
+                json.dump(param_dictionary, outfile)
 
         if trained_ep and agent.epsilon > agent.epsilon_min:
             agent.epsilon *= agent.epsilon_decay
