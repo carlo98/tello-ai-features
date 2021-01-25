@@ -37,9 +37,7 @@ def main():
     # keep looping until no more frames
     more_frames = True
     while more_frames:
-        frame = cv2.cvtColor(np.array(
-            frame), cv2.COLOR_RGB2BGR)
-        if tracker.track(frame) == 1:
+        if tracker.track(np.array(frame)) == 1:
             print("Obstacle")
         frame = get_frame(vid_stream, stream)
         if frame is None:

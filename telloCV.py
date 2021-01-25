@@ -23,6 +23,7 @@ Controls:
 import time
 import datetime
 import os
+import copy
 import tellopy
 import numpy
 import av
@@ -184,27 +185,27 @@ class TelloCV(object):
 
     def process_frame(self, frame):
         """convert frame to cv2 image and show"""
-        image = cv2.cvtColor(numpy.array(
-            frame.to_image()), cv2.COLOR_RGB2BGR)
-        image_2 = self.write_hud(image)
+        x = numpy.array(frame.to_image())
+        image = cv2.cvtColor(copy.deepcopy(x), cv2.COLOR_RGB2BGR)
+        image = self.write_hud(image)
         if self.record:
             self.record_vid(frame)
 
         
-        #image_2 = self.tracker.draw_arrows(image_2)
+        #image = self.tracker.draw_arrows(image)
 
         cmd = ""
         if self.save_frame:
             if self.blocked_free == 0:
-                cv2.imwrite("data/collision_avoidance/blocked/"+str(self.cont_blocked)+".png", image)
+                cv2.imwrite("data/collision_avoidance/blocked/"+str(self.cont_blocked)+".png", x)
                 self.cont_blocked += 1
             elif self.blocked_free == 1:
-                cv2.imwrite("data/collision_avoidance/free/"+str(self.cont_free)+".png", image)
+                cv2.imwrite("data/collision_avoidance/free/"+str(self.cont_free)+".png", x)
                 self.cont_free += 1
             self.save_frame = False
             
         if self.avoidance:
-            cmd_agent = self.agent.track(image)
+            cmd_agent = self.agent.track(x)
             if cmd_agent == 1:
                 cmd = "clockwise"
                 if self.track_cmd is not "":
@@ -219,7 +220,7 @@ class TelloCV(object):
                 self.track_cmd = cmd
             
         elif self.tracking:
-            readings = self.tracker.track(image_2)
+            readings = self.tracker.track(image)
             xoff = readings[-1][0]  #TODO: add NN
             yoff = readings[-1][1]
             distance_measure = readings[-1][2]
