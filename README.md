@@ -10,7 +10,14 @@ Install anaconda and then:
 conda create -n <env_name> python=3.7
 conda activate <env_name>
 pip install -r requirements.txt
+```
+
+For collision avoidance
+```
 mkdir saved_models
+mkdir data
+mkdir data/blocked
+mkdir data/free
 ```
 
 TelloPy:
@@ -27,9 +34,13 @@ All control commands are described in telloCV.py.
 ## Files
 telloCV.py: controller
 
-face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py"
+face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py" DANGER!
 
 svm.py: Creates a SVM capable of recognize faces, at the top of the file is shown how one should organize the images. [Face recognition](https://github.com/ageitgey/face_recognition)
+
+collision_avoidance.py: Uses a neural network to perform collision avoidance, chooses whether to go forward or turn left. DANGER!
+
+train_model.ipynb: Can be used to train a NN using images in folder "data" and saving the NN in folder "saved_models". In order to save images look at the commands in telloCV.py
 
 ### Warning
 The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fitted with your images, using the script "svm.py".
