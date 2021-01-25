@@ -29,21 +29,12 @@ import av
 import cv2
 from pynput import keyboard
 from face_rec_tracker import Tracker
+from collision_avoidance import Agent
 import sys
 
 def main():
     """ Create a tello controller and show the video feed."""
     tellotrack = TelloCV()
-    #cont = 0
-    #for packet in tellotrack.container.demux((tellotrack.vid_stream,)):
-    #    if cont <= 2 or cont >= 500:
-    #        for frame in packet.decode():
-    #            image = tellotrack.process_frame(frame)
-    #            cv2.imshow('tello', image)
-    #            _ = cv2.waitKey(1) & 0xFF
-    #        cont += 1
-    #    else:
-    #        cont += 1
     
     try:
         # skip first 300 frames
@@ -84,7 +75,16 @@ class TelloCV(object):
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
         self.speed = 30
+        self.cont_blocked = 380
+        self.cont_free = 725
+        self.avoidance = False
+        self.save_frame = False
+        self.blocked_free = 0
+        self.distance = 100
+        self.area_min = 4500
+        self.area_max = 5500
         self.track_cmd = ""
+        self.agent = Agent()
         self.tracker = Tracker()
         self.drone = tellopy.Tello()
         self.init_drone()
@@ -172,47 +172,68 @@ class TelloCV(object):
             't': lambda speed: self.toggle_tracking(speed),
             'r': lambda speed: self.toggle_recording(speed),
             'z': lambda speed: self.toggle_zoom(speed),
-            'Key.enter': lambda speed: self.take_picture(speed)
+            'Key.enter': lambda speed: self.take_picture(speed),
+            'b': lambda speed: self.toggle_blocked_free(0),
+            'f': lambda speed: self.toggle_blocked_free(1),
+            'c': lambda speed: self.toggle_collisionAvoidance(speed)
+            
         }
         self.key_listener = keyboard.Listener(on_press=self.on_press,
                                               on_release=self.on_release)
         self.key_listener.start()
-        # self.key_listener.join()
 
     def process_frame(self, frame):
         """convert frame to cv2 image and show"""
         image = cv2.cvtColor(numpy.array(
             frame.to_image()), cv2.COLOR_RGB2BGR)
-        image = self.write_hud(image)
+        image_2 = self.write_hud(image)
         if self.record:
             self.record_vid(frame)
 
-        readings = self.tracker.track(image)
-        #xoff, yoff = self.tracker.track(image)
-        #image = self.tracker.draw_arrows(image)
+        
+        #image_2 = self.tracker.draw_arrows(image_2)
 
-        distance = 100
-        area_min = 4500  # Either radius or area
-        area_max = 5500
-        #radius_min = 300
-        #radius_max = 600
         cmd = ""
-        if self.tracking:
+        if self.save_frame:
+            if self.blocked_free == 0:
+                cv2.imwrite("data/collision_avoidance/blocked/"+str(self.cont_blocked)+".png", image)
+                self.cont_blocked += 1
+            elif self.blocked_free == 1:
+                cv2.imwrite("data/collision_avoidance/free/"+str(self.cont_free)+".png", image)
+                self.cont_free += 1
+            self.save_frame = False
+            
+        if self.avoidance:
+            cmd_agent = self.agent.track(image)
+            if cmd_agent == 1:
+                cmd = "clockwise"
+                if self.track_cmd is not "":
+                    getattr(self.drone, self.track_cmd)(0)
+                getattr(self.drone, cmd)(self.speed)
+                self.track_cmd = cmd
+            else:
+                if self.track_cmd is not "":
+                    getattr(self.drone, self.track_cmd)(0)
+                cmd = "forward"
+                getattr(self.drone, cmd)(self.speed)
+                self.track_cmd = cmd
+            
+        elif self.tracking:
+            readings = self.tracker.track(image_2)
             xoff = readings[-1][0]  #TODO: add NN
             yoff = readings[-1][1]
-            distance_measure = readings[-1][2]  # Either radius or area
-            print(readings[-1])
-            if xoff < -distance:
+            distance_measure = readings[-1][2]
+            if xoff < -self.distance:
                 cmd = "counter_clockwise"
-            elif xoff > distance:
+            elif xoff > self.distance:
                 cmd = "clockwise"
-            elif yoff < -distance:
+            elif yoff < -self.distance:
                 cmd = "down"
-            elif yoff > distance:
+            elif yoff > self.distance:
                 cmd = "up"
-            elif distance_measure <= area_min:
+            elif distance_measure <= self.area_min:
                 cmd = "forward"
-            elif distance_measure >= area_max:
+            elif distance_measure >= self.area_max:
                 cmd = "backward"
             else:
                 if self.track_cmd is not "":
@@ -233,6 +254,7 @@ class TelloCV(object):
         """Draw drone info, tracking and record on frame"""
         stats = self.prev_flight_data.split('|')
         stats.append("Tracking:" + str(self.tracking))
+        stats.append("Collision Avoidance NN:" + str(self.avoidance))
         if self.drone.zoom:
             stats.append("VID")
         else:
@@ -248,6 +270,10 @@ class TelloCV(object):
                         cv2.FONT_HERSHEY_SIMPLEX,
                         1.0, (255, 0, 0), lineType=30)
         return frame
+        
+    def toggle_blocked_free(self, block_free):
+        self.save_frame = True
+        self.blocked_free = block_free
 
     def toggle_recording(self, speed):
         """Handle recording keypress, creates output stream and file"""
@@ -309,6 +335,14 @@ class TelloCV(object):
             return
         self.tracking = not self.tracking
         print("tracking:", self.tracking)
+        return
+        
+    def toggle_collisionAvoidance(self, speed):
+        """ Handle avoidance keypress"""
+        if speed == 0:  # handle key up event
+            return
+        self.avoidance = not self.avoidance
+        print("avoidance:", self.avoidance)
         return
 
     def toggle_zoom(self, speed):

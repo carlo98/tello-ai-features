@@ -2,7 +2,7 @@
 Autonomous tracker for Tello drones. It uses python 3.7 and [TelloPy](https://github.com/hanyazou/TelloPy).
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
-Identifies a known face in the image and infers its smallest enclosing rectangles, then (STILL TO BE IMPLEMENTED) uses a NN to drive the tello in such a way to keep the face at the center of the image.
+Identifies a known face in the image and infers its smallest enclosing rectangle, then (STILL TO BE IMPLEMENTED) uses a NN to drive the tello in such a way to keep the face at the center of the image.
 
 ## Installation
 Install anaconda and then:
