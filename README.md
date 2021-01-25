@@ -8,6 +8,7 @@ It uses a neural network to identify a face in the image and infer its center an
 Install anaconda and then:
 ```
 conda create -n <env_name> python=3.7
+conda activate <env_name>
 pip install -r requirements.txt
 ```
 
