@@ -9,7 +9,7 @@ import torchvision
 import cv2
 import numpy as np
 import torch.nn.functional as F
-import time    
+import time
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
@@ -93,10 +93,12 @@ class Agent:
         stdev = 255.0 * np.array([0.229, 0.224, 0.225])
 
         self.normalize = torchvision.transforms.Normalize(mean, stdev)
+        self.blur = torchvision.transforms.GaussianBlur(3)
         
     def preprocess(self, x):
         x = x.transpose((2, 0, 1))
         x = torch.from_numpy(x).float()
+        x = self.blur(x)
         x = self.normalize(x)
         x = x.to(self.device)
         x = x[None, ...]
@@ -104,6 +106,7 @@ class Agent:
 
     def track(self, frame):
         """NN Tracker"""
+        show(frame)
         start_time = time.time()
         x = self.preprocess(frame)
         y = self.model(x)
@@ -116,7 +119,7 @@ class Agent:
         print(y)
         prob_blocked = float(y.flatten()[0])
     
-        if prob_blocked < 0.50:
+        if prob_blocked < 0.80:
             return 0 # forward
         else:
             return 1 # turn
