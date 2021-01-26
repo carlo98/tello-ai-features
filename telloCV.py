@@ -76,8 +76,8 @@ class TelloCV(object):
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
         self.speed = 30
-        self.cont_blocked = 380
-        self.cont_free = 725
+        self.cont_blocked = 0
+        self.cont_free = 0
         self.avoidance = False
         self.save_frame = False
         self.blocked_free = 0
