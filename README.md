@@ -2,7 +2,9 @@
 Autonomous tracker for Tello drones. It uses python 3.7 and [TelloPy](https://github.com/hanyazou/TelloPy).
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
-Identifies a known face in the image and infers its smallest enclosing rectangle, then (STILL TO BE IMPLEMENTED) uses a NN to drive the tello in such a way to keep the face at the center of the image.
+Identifies a known face in the image, infers its smallest enclosing rectangle and keeps the face at the center of the image.
+
+Implements frontal collision avoidance with NN, look at corresponding paragraph.
 
 ## Installation
 Install anaconda and then:
@@ -41,7 +43,14 @@ collision_avoidance.py: Uses a neural network to perform collision avoidance, ch
 
 train_model.ipynb: Can be used to train a NN using images in folder "data" and saving the NN in folder "saved_models". In order to save images look at the commands in telloCV.py
 
-### Warning
+### Collision avoidance
+In order to perform collision avoidance a neural network is required, train it with 'train_model.ipynb'.
+
+The images can be acquired from telloCV.py ('f' for image to be labelled as 'free', 'b' for image to be labelled as 'blocked').
+
+Once the NN has been trained and saved in folder 'saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing 'c' while in telloCV.py.
+
+### Face recognition
 The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fitted with your images, using the script "svm.py".
 
-In order to perform collision avoidance a neural network is required, train it with 'train_model.ipynb'.
+Instrunctions on how to organize the images are available in the script.
