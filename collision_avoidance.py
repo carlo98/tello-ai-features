@@ -116,7 +116,7 @@ class Agent:
         print(y)
         prob_blocked = float(y.flatten()[0])
     
-        if prob_blocked < 0.90:
+        if prob_blocked < 0.50:
             return 0 # forward
         else:
             return 1 # turn
