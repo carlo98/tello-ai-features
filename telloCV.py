@@ -66,6 +66,15 @@ def main():
     finally:
         tellotrack.drone.quit()
         cv2.destroyAllWindows()
+        
+def show(frame):
+    """show the frame to cv2 window"""
+    cv2.imshow("Frame", frame)
+    key = cv2.waitKey(1) & 0xFF
+
+    # if the 'q' key is pressed, stop the loop
+    if key == ord("q"):
+        exit()
 
 class TelloCV(object):
     """
@@ -224,7 +233,7 @@ class TelloCV(object):
                 self.track_cmd = cmd
             
         elif self.tracking:
-            readings = self.tracker.track(image)
+            readings, display_frame = self.tracker.track(image)
             xoff = readings[-1][0]  #TODO: add NN
             yoff = readings[-1][1]
             distance_measure = readings[-1][2]
@@ -245,7 +254,8 @@ class TelloCV(object):
                     getattr(self.drone, self.track_cmd)(0)
                     self.track_cmd = ""
             print(cmd)
-
+        
+        show(display_frame)
 
         if cmd is not self.track_cmd:
             if cmd is not "":

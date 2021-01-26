@@ -168,13 +168,12 @@ class Tracker:
             area = 0
         # Display the resulting image
         self.draw_arrows(frame)
-        show(frame)
         self.previous_detection.append((self.xoffset, self.yoffset, area))
         self.previous_detection.pop(0)
         print(frame.shape)
         print((self.xoffset, self.yoffset, area))
         print((self.midx, self.midy))
-        return self.previous_detection
+        return self.previous_detection, frame
 
 if __name__ == '__main__':
     main()
