@@ -106,7 +106,6 @@ class Agent:
 
     def track(self, frame):
         """NN Tracker"""
-        show(frame)
         start_time = time.time()
         x = self.preprocess(frame)
         y = self.model(x)
@@ -119,7 +118,7 @@ class Agent:
         print(y)
         prob_blocked = float(y.flatten()[0])
     
-        if prob_blocked < 0.80:
+        if prob_blocked < 0.50:
             return 0 # forward
         else:
             return 1 # turn
