@@ -44,3 +44,5 @@ train_model.ipynb: Can be used to train a NN using images in folder "data" and s
 
 ### Warning
 The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fitted with your images, using the script "svm.py".
+
+In order to perform collision avoidance a neural network is required, train it with 'train_model.ipynb'.

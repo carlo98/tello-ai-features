@@ -19,6 +19,10 @@ Controls:
 - T to toggle tracking
 @author Leonie Buckley, Saksham Sinha and Jonathan Byrne
 @copyright 2018 see license file for details
+
+ - C to toggle collision avoidance
+ - F to save frame as free (collision avoidance)
+ - B to save frame as blocked (collision avoidance) 
 """
 import time
 import datetime
