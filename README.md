@@ -7,9 +7,8 @@ Identifies a known face in the image and infers its smallest enclosing rectangle
 ## Installation
 Install anaconda and then:
 ```
-conda create -n <env_name> python=3.7
+conda create --name <env> --file requirements.txt
 conda activate <env_name>
-pip install -r requirements.txt
 ```
 
 For collision avoidance
