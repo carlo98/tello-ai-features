@@ -65,7 +65,7 @@ def get_frame(vid_stream, stream):
     if frame is None:
         return None
     else:
-        frame = imutils.resize(frame, width=224)
+        frame = imutils.resize(frame, width=224, height=224)
         return frame
 
 
@@ -83,6 +83,7 @@ class Agent:
 
     def __init__(self):
         self.model = torchvision.models.alexnet(pretrained=False)
+        self.model.features[0] = torch.nn.Conv2d(1, 64, kernel_size=11, stride=4, padding=2)
         self.model.classifier[6] = torch.nn.Linear(self.model.classifier[6].in_features, 2)
         self.model.load_state_dict(torch.load('saved_models/best_model.pth', map_location=torch.device('cpu')))
 
@@ -92,16 +93,15 @@ class Agent:
         mean = 255.0 * np.array([0.485, 0.456, 0.406])
         stdev = 255.0 * np.array([0.229, 0.224, 0.225])
 
-        self.normalize = torchvision.transforms.Normalize(mean, stdev)
-        self.blur = torchvision.transforms.GaussianBlur(3)
+        self.resize = torchvision.transforms.Resize((224, 224))
         
     def preprocess(self, x):
-        x = x.transpose((2, 0, 1))
+        x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+        x = cv2.Canny(x, 60, 160)
+        show(x)
         x = torch.from_numpy(x).float()
-        x = self.blur(x)
-        x = self.normalize(x)
         x = x.to(self.device)
-        x = x[None, ...]
+        x = x[None, None, ...]
         return x
 
     def track(self, frame):
