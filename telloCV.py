@@ -52,8 +52,7 @@ def main():
                     continue
                 start_time = time.time()
                 image = tellotrack.process_frame(frame)
-                #cv2.imshow('tello', image)
-                _ = cv2.waitKey(1) & 0xFF
+                show('tello', image)
                 if frame.time_base < 1.0/60:
                     time_base = 1.0/60
                 else:
@@ -112,8 +111,6 @@ class TelloCV(object):
         self.out_stream = None
         self.out_name = None
         self.start_time = time.time()
-        #green_lower = (0, 50, 50)
-        #green_upper = (20, 255, 255)
         self.tracker.init_video(self.vid_stream.height,
                                self.vid_stream.width)
 
@@ -241,7 +238,7 @@ class TelloCV(object):
                 getattr(self.drone, cmd)(self.speed)
                 self.track_cmd = cmd
                 
-            show(display_frame)
+            image = display_frame
             
         elif self.tracking:
             readings, display_frame = self.tracker.track(image)
@@ -262,9 +259,8 @@ class TelloCV(object):
                 if self.track_cmd is not "":
                     getattr(self.drone, self.track_cmd)(0)
                     self.track_cmd = ""
-            print(cmd)
             
-            show(display_frame)
+            image = display_frame
             
         if cmd is not self.track_cmd:
             if cmd is not "":
