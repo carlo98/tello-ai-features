@@ -35,6 +35,7 @@ import cv2
 from pynput import keyboard
 from face_rec_tracker import Tracker
 from collision_avoidance_edges import Agent
+from scipy import interpolate
 import sys
 
 def main():
@@ -193,15 +194,25 @@ class TelloCV(object):
         self.key_listener = keyboard.Listener(on_press=self.on_press,
                                               on_release=self.on_release)
         self.key_listener.start()
+        
+    def interpolate_readings(readings):
+        '''
+        Predicts next position of target
+        '''
+        fx = interpolate.interp1d(range(0, len(readings)), readings[:, 0])
+        fy = interpolate.interp1d(range(0, len(readings)), readings[:, 1])
+        farea = interpolate.interp1d(range(0, len(readings)), readings[:, 2])
+        
+        return fx(len(readings)), fy(len(readings)), farea(len(readings))
+        
 
     def process_frame(self, frame):
-        """convert frame to cv2 image and show"""
+        """converts frame to cv2 image and show"""
         x = numpy.array(frame.to_image())
         image = cv2.cvtColor(copy.deepcopy(x), cv2.COLOR_RGB2BGR)
         image = self.write_hud(image)
         if self.record:
             self.record_vid(frame)
-
         
         #image = self.tracker.draw_arrows(image)
 
@@ -234,9 +245,7 @@ class TelloCV(object):
             
         elif self.tracking:
             readings, display_frame = self.tracker.track(image)
-            xoff = readings[-1][0]  #TODO: add NN
-            yoff = readings[-1][1]
-            distance_measure = readings[-1][2]
+            xoff, yoff, distance_measure = self.interpolate_readings(readings)
             if xoff < -self.distance:
                 cmd = "counter_clockwise"
             elif xoff > self.distance:
