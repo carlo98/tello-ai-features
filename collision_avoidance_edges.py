@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import torch.nn.functional as F
 import time
+from model import edge_net
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
@@ -82,9 +83,7 @@ def show(frame):
 class Agent:
 
     def __init__(self):
-        self.model = torchvision.models.alexnet(pretrained=False)
-        self.model.features[0] = torch.nn.Conv2d(1, 64, kernel_size=11, stride=4, padding=2)
-        self.model.classifier[6] = torch.nn.Linear(self.model.classifier[6].in_features, 2)
+        self.model = edge_net()
         self.model.load_state_dict(torch.load('saved_models/best_model.pth', map_location=torch.device('cpu')))
 
         self.device = torch.device('cpu')
