@@ -169,8 +169,6 @@ class TelloCV(object):
             'Key.space': 'up',
             'Key.shift': 'down',
             'Key.shift_r': 'down',
-            'q': 'counter_clockwise',
-            'e': 'clockwise',
             'i': lambda speed: self.drone.flip_forward(),
             'k': lambda speed: self.drone.flip_back(),
             'j': lambda speed: self.drone.flip_left(),
@@ -189,7 +187,7 @@ class TelloCV(object):
             'Key.enter': lambda speed: self.take_picture(speed),
             'b': lambda speed: self.toggle_blocked_free(0),
             'f': lambda speed: self.toggle_blocked_free(1),
-            'c': lambda speed: self.toggle_collisionAvoidance(speed)
+            'q': lambda speed: self.toggle_collisionAvoidance(speed)
             
         }
         self.key_listener = keyboard.Listener(on_press=self.on_press,
@@ -210,10 +208,10 @@ class TelloCV(object):
         cmd = ""
         if self.save_frame:
             if self.blocked_free == 0:
-                cv2.imwrite("data/collision_avoidance/blocked/"+str(self.cont_blocked)+".png", x)
+                cv2.imwrite("data/blocked/"+str(self.cont_blocked)+".png", x)
                 self.cont_blocked += 1
             elif self.blocked_free == 1:
-                cv2.imwrite("data/collision_avoidance/free/"+str(self.cont_free)+".png", x)
+                cv2.imwrite("data/free/"+str(self.cont_free)+".png", x)
                 self.cont_free += 1
             self.save_frame = False
             
