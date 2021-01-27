@@ -1,5 +1,5 @@
 # tello-ai-tracker
-Autonomous tracker for Tello drones. It uses python 3.7 and [TelloPy](https://github.com/hanyazou/TelloPy).
+Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and [TelloPy](https://github.com/hanyazou/TelloPy).
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
 Identifies a known face in the image, infers its smallest enclosing rectangle and keeps the face at the center of the image.
@@ -9,14 +9,10 @@ Implements frontal collision avoidance with NN, look at corresponding paragraph.
 ## Installation
 Install anaconda and opencv and then:
 ```
-conda create --name <env> python=3.7
+conda create --name <env> python=3.7 # or python=3.6
 conda activate <env>
 conda install pip
-python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-sudo apt update
-sudo apt upgrade
+pip install numpy av pynput face-recognition sklearn torch 
 ```
 then close everything and open a new terminal, in order to check if requirements have been installed:
 ```
