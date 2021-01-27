@@ -59,7 +59,7 @@ In order to perform collision avoidance a neural network is required, train it w
 
 The images can be acquired from telloCV.py ('f' for image to be labelled as 'free', 'b' for image to be labelled as 'blocked').
 
-Once the NN has been trained and saved in folder 'saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing 'c' while in telloCV.py.
+Once the NN has been trained and saved in folder 'saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing 'q' while in telloCV.py.
 
 ### Face recognition
 The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fitted with your images, using the script "svm.py".
