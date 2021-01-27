@@ -35,6 +35,7 @@ import cv2
 from pynput import keyboard
 from face_rec_tracker import Tracker
 from collision_avoidance import Agent
+from image_processing import FrameProc
 from scipy.interpolate import interp1d
 import sys
 
@@ -113,6 +114,7 @@ class TelloCV(object):
         self.start_time = time.time()
         self.tracker.init_video(self.vid_stream.height,
                                self.vid_stream.width)
+        self.frameproc = FrameProc(self.vid_stream.width, self.vid_stream.height)
 
     def init_drone(self):
         """Connect, uneable streaming and subscribe to events"""
@@ -222,7 +224,11 @@ class TelloCV(object):
 
     def process_frame(self, frame):
         """converts frame to cv2 image and show"""
+        
         x = np.array(frame.to_image())
+        # Get undistorted frame
+        x = self.frameproc.undistort_frame(x)
+         
         image = cv2.cvtColor(copy.deepcopy(x), cv2.COLOR_RGB2BGR)
         image = self.write_hud(image)
         if self.record:

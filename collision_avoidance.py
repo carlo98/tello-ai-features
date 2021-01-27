@@ -96,6 +96,7 @@ class Agent:
         
     def preprocess(self, x):
         x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+        x = cv2.GaussianBlur(x, (3, 3), 5)
         x = cv2.Canny(x, 20, 160)
         y = torch.from_numpy(x).float()
         y = y.to(self.device)
