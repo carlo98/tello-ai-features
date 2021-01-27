@@ -15,6 +15,13 @@ conda activate <env>
 conda install pip
 pip install numpy av pynput face-recognition sklearn torch
 ```
+TelloPy:
+```
+git clone https://github.com/hanyazou/TelloPy
+cd TelloPy
+python setup.py bdist_wheel
+pip install dist/tellopy-*.dev*.whl --upgrade
+```
 then close everything and open a new terminal, in order to check if requirements have been installed:
 ```
 conda activate <env>
@@ -32,13 +39,9 @@ mkdir edges
 mkdir edges/blocked_edges
 mkdir edges/free_edges
 ```
-
-TelloPy:
+For camera calibration
 ```
-git clone https://github.com/hanyazou/TelloPy
-cd TelloPy
-python setup.py bdist_wheel
-pip install dist/tellopy-*.dev*.whl --upgrade
+mkdir chessboards
 ```
 
 ## Control commands
@@ -70,3 +73,8 @@ The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fit
 Instrunctions on how to organize the images are available in the script.
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
+
+### Camera Calibration
+Save 15-20 images of a chessboard, made with the camera of tello, in the folder chessboards and call them <integer>.jpg.
+
+Use the jupyter notebook 'camera_calibration' to compute the parameters and then copy and paste them in the python script 'image_processing.py'.

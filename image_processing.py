@@ -1,5 +1,5 @@
 '''
-Change parameters by taking the values from camera_calibration.py
+Change parameters by taking the values from camera_calibration.ipynb
 
 Those provided here are taken from the camera of my Tello.
 '''
