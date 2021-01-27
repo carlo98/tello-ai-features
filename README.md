@@ -9,7 +9,7 @@ Implements frontal collision avoidance with NN, look at corresponding paragraph.
 ## Installation
 Install anaconda and opencv and then:
 ```
-conda activate --name <env> python=3.7
+conda create --name <env> python=3.7
 conda activate <env>
 conda install pip
 python3 -m venv env
