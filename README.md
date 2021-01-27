@@ -1,9 +1,6 @@
 # tello-ai-tracker
-<<<<<<< HEAD
-Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and [TelloPy](https://github.com/hanyazou/TelloPy).
-=======
 Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and uses [TelloPy](https://github.com/hanyazou/TelloPy).
->>>>>>> development
+
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
 Identifies a known face in the image, infers its smallest enclosing rectangle and keeps the face at the center of the image.
@@ -16,22 +13,13 @@ Install anaconda and opencv and then:
 conda create --name <env> python=3.7 # or python=3.6
 conda activate <env>
 conda install pip
-pip install numpy av pynput face-recognition sklearn torch 
-<<<<<<< HEAD
+pip install numpy av pynput face-recognition sklearn torch
 ```
 then close everything and open a new terminal, in order to check if requirements have been installed:
 ```
 conda activate <env>
 pip freeze
 ```
-=======
-```
-then close everything and open a new terminal, in order to check if requirements have been installed:
-```
-conda activate <env>
-pip freeze
-```
->>>>>>> development
 Compare the list of packages installed to those in the file requirements.txt
 
 For collision avoidance
@@ -74,17 +62,11 @@ The images can be acquired from telloCV.py ('f' for image to be labelled as 'fre
 
 Once the NN has been trained and saved in folder 'saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing 'q' while in telloCV.py.
 
-<<<<<<< HEAD
-=======
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
->>>>>>> development
 ### Face recognition
 The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fitted with your images, using the script "svm.py".
 
 Instrunctions on how to organize the images are available in the script.
-<<<<<<< HEAD
-=======
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
->>>>>>> development

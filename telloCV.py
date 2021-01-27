@@ -19,11 +19,7 @@ Controls:
 @author Leonie Buckley, Saksham Sinha and Jonathan Byrne
 @copyright 2018 see license file for details
 
-<<<<<<< HEAD
- - Q to toggle collision avoidance
-=======
  - Q to toggle collision avoidance (At the moment only one between this and tracking can be active)
->>>>>>> development
  - F to save frame as free (collision avoidance)
  - B to save frame as blocked (collision avoidance) 
 """
