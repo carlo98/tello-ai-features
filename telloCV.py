@@ -16,11 +16,11 @@ Controls:
   (video and photos will be saved to a timestamped file in ~/Pictures/)
 - Z to toggle camera zoom state
   (zoomed-in widescreen or high FOV 4:3)
-- T to toggle tracking
+- T to toggle tracking (At the moment only one between this and collision avoidance can be active)
 @author Leonie Buckley, Saksham Sinha and Jonathan Byrne
 @copyright 2018 see license file for details
 
- - Q to toggle collision avoidance
+ - Q to toggle collision avoidance (At the moment only one between this and tracking can be active)
  - F to save frame as free (collision avoidance)
  - B to save frame as blocked (collision avoidance) 
 """
@@ -197,26 +197,28 @@ class TelloCV(object):
         Predicts next position of target
         ''' 
         readings = []
+        readings_index = []
         flag = True # Set to false if last reading has no face
         for i, reading in enumerate(raw_readings):
             if reading[2] != 0:
                 readings.append(reading)
+                readings_index.append(i)
             elif i == len(raw_readings)-1:
                 flag = False
-                
+
         if len(readings) >= 2:
             readings = np.array(readings)
-            fx = interp1d(range(0, len(readings))/len(readings), readings[:, 0], fill_value="extrapolate")
-            fy = interp1d(range(0, len(readings))/len(readings), readings[:, 1], fill_value="extrapolate")
-            farea = interp1d(range(0, len(readings))/len(readings), readings[:, 2], fill_value="extrapolate")
-            return fx(len(readings)), fy(len(readings)), farea(len(readings))
+            fx = interp1d(readings_index, readings[:, 0], fill_value="extrapolate")
+            fy = interp1d(readings_index, readings[:, 1], fill_value="extrapolate")
+            farea = interp1d(readings_index, readings[:, 2], fill_value="extrapolate")
+            return fx(len(raw_readings)), fy(len(raw_readings)), farea(len(raw_readings))
             
         # If only one reading available using it only if it is the most recent one
         if len(readings) == 1 and flag:
             return readings[0][0], readings[0][1], readings[0][2]
-            
+
         return -1, -1, -1
-        
+
 
     def process_frame(self, frame):
         """converts frame to cv2 image and show"""

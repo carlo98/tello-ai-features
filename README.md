@@ -61,7 +61,11 @@ The images can be acquired from telloCV.py ('f' for image to be labelled as 'fre
 
 Once the NN has been trained and saved in folder 'saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing 'q' while in telloCV.py.
 
+IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
+
 ### Face recognition
 The binarized svm in the repo, "svm_fam.bin", should be replaced with an svm fitted with your images, using the script "svm.py".
 
 Instrunctions on how to organize the images are available in the script.
+
+IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
