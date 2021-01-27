@@ -218,7 +218,7 @@ class TelloCV(object):
             self.save_frame = False
             
         if self.avoidance:
-            cmd_agent = self.agent.track(x)
+            cmd_agent, display_frame = self.agent.track(x)
             if cmd_agent == 1:
                 cmd = "clockwise"
                 if self.track_cmd is not "":

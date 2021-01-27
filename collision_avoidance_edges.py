@@ -97,17 +97,16 @@ class Agent:
     def preprocess(self, x):
         x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
         x = cv2.Canny(x, 20, 160)
-        show(x)
-        x = torch.from_numpy(x).float()
-        x = x.to(self.device)
-        x = x[None, None, ...]
-        return x
+        y = torch.from_numpy(x).float()
+        y = y.to(self.device)
+        y = y[None, None, ...]
+        return y, x
 
     def track(self, frame):
         """NN Tracker"""
         start_time = time.time()
-        x = self.preprocess(frame)
-        y = self.model(x)
+        y, x = self.preprocess(frame)
+        y = self.model(y)
         
         print("Inference time: ", time.time()-start_time)
     
@@ -117,10 +116,11 @@ class Agent:
         print(y)
         prob_blocked = float(y.flatten()[0])
     
-        if prob_blocked < 0.40:
-            return 0 # forward
+        if prob_blocked < 0.30:
+            return 0, x # forward
         else:
-            return 1 # turn
+            print("blocked")
+            return 1, x # turn
 
 if __name__ == '__main__':
     main()
