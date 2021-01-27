@@ -97,7 +97,7 @@ class Agent:
         
     def preprocess(self, x):
         x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
-        x = cv2.Canny(x, 60, 160)
+        x = cv2.Canny(x, 20, 160)
         show(x)
         x = torch.from_numpy(x).float()
         x = x.to(self.device)
@@ -118,7 +118,7 @@ class Agent:
         print(y)
         prob_blocked = float(y.flatten()[0])
     
-        if prob_blocked < 0.50:
+        if prob_blocked < 0.40:
             return 0 # forward
         else:
             return 1 # turn
