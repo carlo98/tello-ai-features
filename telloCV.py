@@ -8,7 +8,6 @@ Controls:
 - tab to lift off
 - WASD to move the drone
 - space/shift to ascend/descent slowly
-- Q/E to yaw slowly
 - arrow keys to ascend, descend, or yaw quickly
 - backspace to land, or P to palm-land
 - enter to take a picture
@@ -20,7 +19,7 @@ Controls:
 @author Leonie Buckley, Saksham Sinha and Jonathan Byrne
 @copyright 2018 see license file for details
 
- - C to toggle collision avoidance
+ - Q to toggle collision avoidance
  - F to save frame as free (collision avoidance)
  - B to save frame as blocked (collision avoidance) 
 """
