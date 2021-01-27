@@ -1,5 +1,5 @@
 # tello-ai-tracker
-Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and [TelloPy](https://github.com/hanyazou/TelloPy).
+Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and uses [TelloPy](https://github.com/hanyazou/TelloPy).
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
 Identifies a known face in the image, infers its smallest enclosing rectangle and keeps the face at the center of the image.
@@ -50,7 +50,7 @@ face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces
 
 svm.py: Creates a SVM capable of recognize faces, at the top of the file is shown how one should organize the images. [Face recognition](https://github.com/ageitgey/face_recognition)
 
-collision_avoidance.py: Uses a neural network to perform collision avoidance, chooses whether to go forward or turn left. DANGER!
+collision_avoidance.py: It uses opencv canny edge detector to detect edges and uses the output as input for a neural network which performs collision avoidance, chooses whether to go forward or turn. DANGER!
 
 train_model.ipynb: Can be used to train a NN using images in folder "data" and saving the NN in folder "saved_models". In order to save images look at the commands in telloCV.py
 

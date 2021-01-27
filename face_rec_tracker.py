@@ -152,7 +152,6 @@ class Tracker:
        
             x = (right-left)/2
             y = (top-bottom)/2
-            print((top, bottom, right, left))
             #radius = np.max([x, y])
             x_c = int(x+left)
             y_c = int(y+bottom)
@@ -168,11 +167,8 @@ class Tracker:
             area = 0
         # Display the resulting image
         self.draw_arrows(frame)
-        self.previous_detection.append((self.xoffset, self.yoffset, area))
+        self.previous_detection.append([self.xoffset, self.yoffset, area])
         self.previous_detection.pop(0)
-        print(frame.shape)
-        print((self.xoffset, self.yoffset, area))
-        print((self.midx, self.midy))
         return self.previous_detection, frame
 
 if __name__ == '__main__':

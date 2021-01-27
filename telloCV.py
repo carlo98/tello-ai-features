@@ -29,13 +29,13 @@ import datetime
 import os
 import copy
 import tellopy
-import numpy
+import numpy as np
 import av
 import cv2
 from pynput import keyboard
 from face_rec_tracker import Tracker
 from collision_avoidance import Agent
-from scipy import interpolate
+from scipy.interpolate import interp1d
 import sys
 
 def main():
@@ -52,7 +52,7 @@ def main():
                     continue
                 start_time = time.time()
                 image = tellotrack.process_frame(frame)
-                show('tello', image)
+                show(image)
                 if frame.time_base < 1.0/60:
                     time_base = 1.0/60
                 else:
@@ -96,7 +96,7 @@ class TelloCV(object):
         self.blocked_free = 0
         self.distance = 100
         self.area_min = 4500
-        self.area_max = 5500
+        self.area_max = 4700
         self.track_cmd = ""
         self.agent = Agent()
         self.tracker = Tracker()
@@ -192,20 +192,35 @@ class TelloCV(object):
                                               on_release=self.on_release)
         self.key_listener.start()
         
-    def interpolate_readings(readings):
+    def interpolate_readings(self, raw_readings):
         '''
         Predicts next position of target
-        '''
-        fx = interpolate.interp1d(range(0, len(readings)), readings[:, 0])
-        fy = interpolate.interp1d(range(0, len(readings)), readings[:, 1])
-        farea = interpolate.interp1d(range(0, len(readings)), readings[:, 2])
-        
-        return fx(len(readings)), fy(len(readings)), farea(len(readings))
+        ''' 
+        readings = []
+        flag = True # Set to false if last reading has no face
+        for i, reading in enumerate(raw_readings):
+            if reading[2] != 0:
+                readings.append(reading)
+            elif i == len(raw_readings)-1:
+                flag = False
+                
+        if len(readings) >= 2:
+            readings = np.array(readings)
+            fx = interp1d(range(0, len(readings))/len(readings), readings[:, 0], fill_value="extrapolate")
+            fy = interp1d(range(0, len(readings))/len(readings), readings[:, 1], fill_value="extrapolate")
+            farea = interp1d(range(0, len(readings))/len(readings), readings[:, 2], fill_value="extrapolate")
+            return fx(len(readings)), fy(len(readings)), farea(len(readings))
+            
+        # If only one reading available using it only if it is the most recent one
+        if len(readings) == 1 and flag:
+            return readings[0][0], readings[0][1], readings[0][2]
+            
+        return -1, -1, -1
         
 
     def process_frame(self, frame):
         """converts frame to cv2 image and show"""
-        x = numpy.array(frame.to_image())
+        x = np.array(frame.to_image())
         image = cv2.cvtColor(copy.deepcopy(x), cv2.COLOR_RGB2BGR)
         image = self.write_hud(image)
         if self.record:
@@ -242,8 +257,10 @@ class TelloCV(object):
             
         elif self.tracking:
             readings, display_frame = self.tracker.track(image)
-            xoff, yoff, distance_measure = self.interpolate_readings(readings)
-            if xoff < -self.distance:
+            xoff, yoff, distance_measure = self.interpolate_readings(copy.deepcopy(readings))
+            if xoff == -1:
+                cmd = ""
+            elif xoff < -self.distance:
                 cmd = "counter_clockwise"
             elif xoff > self.distance:
                 cmd = "clockwise"
