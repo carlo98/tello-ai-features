@@ -95,8 +95,8 @@ class TelloCV(object):
         self.save_frame = False
         self.blocked_free = 0
         self.distance = 100
-        self.area_min = 4500
-        self.area_max = 4700
+        self.area_min = 4000
+        self.area_max = 8000
         self.track_cmd = ""
         self.agent = Agent()
         self.tracker = Tracker()
@@ -271,8 +271,10 @@ class TelloCV(object):
             elif yoff > self.distance:
                 cmd = "up"
             elif distance_measure <= self.area_min:
+                print("Forward ", distance_measure)
                 cmd = "forward"
             elif distance_measure >= self.area_max:
+                print("backward ", distance_measure)
                 cmd = "backward"
             else:
                 if self.track_cmd is not "":
