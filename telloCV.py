@@ -34,7 +34,7 @@ import av
 import cv2
 from pynput import keyboard
 from face_rec_tracker import Tracker
-from collision_avoidance import Agent
+from collision_avoidance_edges import Agent
 import sys
 
 def main():
@@ -231,6 +231,8 @@ class TelloCV(object):
                 cmd = "forward"
                 getattr(self.drone, cmd)(self.speed)
                 self.track_cmd = cmd
+                
+            show(display_frame)
             
         elif self.tracking:
             readings, display_frame = self.tracker.track(image)
@@ -254,9 +256,9 @@ class TelloCV(object):
                     getattr(self.drone, self.track_cmd)(0)
                     self.track_cmd = ""
             print(cmd)
-        
-        show(display_frame)
-
+            
+            show(display_frame)
+            
         if cmd is not self.track_cmd:
             if cmd is not "":
                 print("track command:", cmd)
