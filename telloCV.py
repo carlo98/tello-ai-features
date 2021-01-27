@@ -34,7 +34,7 @@ import av
 import cv2
 from pynput import keyboard
 from face_rec_tracker import Tracker
-from collision_avoidance_edges import Agent
+from collision_avoidance import Agent
 from scipy import interpolate
 import sys
 

@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import torch.nn.functional as F
 import time
+from model import edge_net
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
@@ -65,7 +66,7 @@ def get_frame(vid_stream, stream):
     if frame is None:
         return None
     else:
-        frame = imutils.resize(frame, width=224)
+        frame = imutils.resize(frame, width=224, height=224)
         return frame
 
 
@@ -82,8 +83,7 @@ def show(frame):
 class Agent:
 
     def __init__(self):
-        self.model = torchvision.models.alexnet(pretrained=False)
-        self.model.classifier[6] = torch.nn.Linear(self.model.classifier[6].in_features, 2)
+        self.model = edge_net()
         self.model.load_state_dict(torch.load('saved_models/best_model.pth', map_location=torch.device('cpu')))
 
         self.device = torch.device('cpu')
@@ -92,23 +92,21 @@ class Agent:
         mean = 255.0 * np.array([0.485, 0.456, 0.406])
         stdev = 255.0 * np.array([0.229, 0.224, 0.225])
 
-        self.normalize = torchvision.transforms.Normalize(mean, stdev)
-        self.blur = torchvision.transforms.GaussianBlur(3)
+        self.resize = torchvision.transforms.Resize((224, 224))
         
     def preprocess(self, x):
-        x = x.transpose((2, 0, 1))
-        x = torch.from_numpy(x).float()
-        x = self.blur(x)
-        x = self.normalize(x)
-        x = x.to(self.device)
-        x = x[None, ...]
-        return x
+        x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+        x = cv2.Canny(x, 20, 160)
+        y = torch.from_numpy(x).float()
+        y = y.to(self.device)
+        y = y[None, None, ...]
+        return y, x
 
     def track(self, frame):
         """NN Tracker"""
         start_time = time.time()
-        x = self.preprocess(frame)
-        y = self.model(x)
+        y, x = self.preprocess(frame)
+        y = self.model(y)
         
         print("Inference time: ", time.time()-start_time)
     
@@ -118,10 +116,11 @@ class Agent:
         print(y)
         prob_blocked = float(y.flatten()[0])
     
-        if prob_blocked < 0.50:
-            return 0 # forward
+        if prob_blocked < 0.30:
+            return 0, x # forward
         else:
-            return 1 # turn
+            print("blocked")
+            return 1, x # turn
 
 if __name__ == '__main__':
     main()
