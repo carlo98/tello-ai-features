@@ -75,6 +75,6 @@ Instrunctions on how to organize the images are available in the script.
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
 ### Camera Calibration
-Save 15-20 images of a chessboard, made with the camera of tello, in the folder chessboards and call them <integer>.jpg.
+Save 15-20 images of a chessboard, made with the camera of tello, in the folder chessboards and call them n.jpg, (n=0, 1, ...).
 
 Use the jupyter notebook 'camera_calibration' to compute the parameters and then copy and paste them in the python script 'image_processing.py'.
