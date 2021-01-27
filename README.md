@@ -7,11 +7,23 @@ Identifies a known face in the image, infers its smallest enclosing rectangle an
 Implements frontal collision avoidance with NN, look at corresponding paragraph.
 
 ## Installation
-Install anaconda and then:
+Install anaconda and opencv and then:
 ```
-conda create --name <env> --file requirements.txt
-conda activate <env_name>
+conda activate --name <env> python=3.7
+conda activate <env>
+conda install pip
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+sudo apt update
+sudo apt upgrade
 ```
+then close everything and open a new terminal, in order to check if requirements have been installed:
+```
+conda activate <env>
+pip freeze
+```
+Compare the list of packages installed to those in the file requirements.txt
 
 For collision avoidance
 ```
