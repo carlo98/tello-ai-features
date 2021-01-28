@@ -65,6 +65,8 @@ The binarized svm in the repo, "Face_Recognition/svm_fam.bin", should be replace
 
 Instrunctions on how to organize the images are available in the script.
 
+By changing the two parameters at the beginning of the python script 'Face_Recognition/face_rec_tracker.py' one can choose which person the tello should track and the ratio between recall and speed, for face detection and recognition.
+
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
 ### Camera Calibration

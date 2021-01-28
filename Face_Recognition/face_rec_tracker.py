@@ -9,7 +9,8 @@ import face_recognition
 from sklearn import svm
 import numpy as np
 
-OBJ = 'person_2'
+OBJ = 'person_2' # Face to follow
+IMAGE_SCALING = 0.50 # Reduce image before searching for faces, faster but lower recall
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
@@ -111,24 +112,20 @@ class Tracker:
     def track(self, frame):
         """NN Tracker"""
         start_time = time.time()
-        process_this_frame = True
         # Resize frame of video to 1/2 size for faster face recognition processing
-        small_frame = cv2.resize(frame, (0, 0), fx=0.50, fy=0.50)
+        small_frame = cv2.resize(frame, (0, 0), fx=IMAGE_SCALING, fy=IMAGE_SCALING)
             
-        # Only process every other frame of video to save time
-        if process_this_frame:
-            # Find all the faces and face encodings in the current frame of video
-            face_locations = face_recognition.face_locations(small_frame, model='hog')
-            face_encodings = face_recognition.face_encodings(small_frame, face_locations)
+        # Find all the faces and face encodings in the current frame of video
+        face_locations = face_recognition.face_locations(small_frame, model='hog')
+        face_encodings = face_recognition.face_encodings(small_frame, face_locations)
 
-            face_names = []
-            for face_encoding in face_encodings:
-                # See if the face is a match for the known face(s)
-                name = self.clf.predict([face_encoding])
+        face_names = []
+        for face_encoding in face_encodings:
+            # See if the face is a match for the known face(s)
+            name = self.clf.predict([face_encoding])
 
-                face_names.append(*name)
-            print("Inference time: ", time.time()-start_time)
-        #process_this_frame = not process_this_frame
+            face_names.append(*name)
+        print("Inference time: ", time.time()-start_time)
 
         found = False
         # Display the results
@@ -137,10 +134,11 @@ class Tracker:
                 continue
             found = True
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            top *= int(2)
-            right *= int(2)
-            bottom *= int(2)
-            left *= int(2)
+            factor = int(1/IMAGE_SCALING)
+            top *= factor
+            right *= factor
+            bottom *= factor
+            left *= factor
 
             # Draw a box around the face
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
