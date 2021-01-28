@@ -32,9 +32,9 @@ import numpy as np
 import av
 import cv2
 from pynput import keyboard
-from face_rec_tracker import Tracker
-from collision_avoidance import Agent
-from process_image import FrameProc
+from Face_Recognition.face_rec_tracker import Tracker
+from Collision_Avoidance.collision_avoidance import Agent
+from Camera_Calibration.process_image import FrameProc
 from scipy.interpolate import interp1d
 import sys
 
