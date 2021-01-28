@@ -34,7 +34,7 @@ import cv2
 from pynput import keyboard
 from face_rec_tracker import Tracker
 from collision_avoidance import Agent
-from image_processing import FrameProc
+from process_image import FrameProc
 from scipy.interpolate import interp1d
 import sys
 
