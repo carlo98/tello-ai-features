@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 import torch.nn.functional as F
 import time
-from model import edge_net
+from model import tommy_net
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
@@ -83,7 +83,7 @@ def show(frame):
 class Agent:
 
     def __init__(self):
-        self.model = edge_net()
+        self.model = tommy_net()
         self.model.load_state_dict(torch.load('saved_models/best_model.pth', map_location=torch.device('cpu')))
 
         self.device = torch.device('cpu')

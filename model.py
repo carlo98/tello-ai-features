@@ -1,9 +1,10 @@
 import torch
 from torch import nn
-class EdgeNet(nn.Module):
+
+class Tommy(nn.Module):
 
     def __init__(self, num_classes=2):
-        super(EdgeNet, self).__init__()
+        super(Tommy, self).__init__()
         self.features = nn.Sequential(
             nn.Conv2d(1, 64, kernel_size=11, stride=4, padding=2),
             nn.ReLU(inplace=True),
@@ -31,6 +32,6 @@ class EdgeNet(nn.Module):
         return x
 
 
-def edge_net(progress=True, **kwargs):
-    model = EdgeNet(**kwargs)
+def tommy_net(progress=True, **kwargs):
+    model = Tommy(**kwargs)
     return model
