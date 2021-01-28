@@ -111,8 +111,7 @@ class TelloCV(object):
         self.out_stream = None
         self.out_name = None
         self.start_time = time.time()
-        self.tracker.init_video(self.vid_stream.height,
-                               self.vid_stream.width)
+        self.video_initialized = False
         self.frameproc = FrameProc(self.vid_stream.width, self.vid_stream.height)
 
     def init_drone(self):
@@ -227,6 +226,10 @@ class TelloCV(object):
         x = np.array(frame.to_image())
         # Get undistorted frame
         x = self.frameproc.undistort_frame(x)
+        
+        if not self.video_initialized:
+            self.tracker.init_video(x.shape[0], x.shape[1])
+            self.video_initialized = True
          
         image = cv2.cvtColor(copy.deepcopy(x), cv2.COLOR_RGB2BGR)
         image = self.write_hud(image)

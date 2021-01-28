@@ -38,7 +38,8 @@ def main():
     # keep looping until no more frames
     more_frames = True
     while more_frames:
-        tracker.track(frame)
+        _, frame = tracker.track(frame)
+        show(frame)
         frame = get_frame(vid_stream, stream)
         if frame is None:
             more_frames = False
