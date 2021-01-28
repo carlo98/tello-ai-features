@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 import torch.nn.functional as F
 import time
-from model import tommy_net
+from Collision_Avoidance.model import tommy_net
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
@@ -84,7 +84,7 @@ class Agent:
 
     def __init__(self):
         self.model = tommy_net()
-        self.model.load_state_dict(torch.load('saved_models/best_model.pth', map_location=torch.device('cpu')))
+        self.model.load_state_dict(torch.load('Collision_Avoidance/saved_models/best_model.pth', map_location=torch.device('cpu')))
 
         self.device = torch.device('cpu')
         self.model = self.model.to(self.device)

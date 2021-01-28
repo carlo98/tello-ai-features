@@ -87,7 +87,7 @@ class Tracker:
 
     def __init__(self):
         # Load SVM binarized
-        with open("svm_fam.bin", "rb") as f:
+        with open("Face_Recognition/svm_fam.bin", "rb") as f:
             self.clf = pickle.load(f)
         
     def init_video(self, height, width):
