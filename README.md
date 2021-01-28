@@ -13,7 +13,7 @@ Install anaconda and opencv and then:
 conda create --name <env> python=3.7 # or python=3.6
 conda activate <env>
 conda install pip
-pip install numpy av pynput face-recognition sklearn torch
+pip install numpy av pynput face-recognition sklearn torch jupyter
 ```
 TelloPy:
 ```
