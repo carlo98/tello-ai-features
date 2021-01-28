@@ -54,6 +54,8 @@ The images can be acquired from telloCV.py ('f' for image to be labelled as 'fre
 
 Once the NN has been trained and saved in folder 'Collision_Avoidance/saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing 'q' while in telloCV.py.
 
+The NN provided in 'Collision_Avoidance/saved_models' has not been fully trained so pay attention please, it's there only to provide a starting point for transfer learning.
+
 In order to provide fast inference for collision avoidance also in pc without GPU a small NN is provided, it accepts in input the edges computed from raw images; this approach has led to a reduction in compution time of 2/3 on intel-i5, with respect to AlexNet.
 
 The drawback is the amount of training images required, due to the loss of transfer learning capabilities.
