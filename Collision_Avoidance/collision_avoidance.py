@@ -38,8 +38,8 @@ def main():
     # keep looping until no more frames
     more_frames = True
     while more_frames:
-        if tracker.track(np.array(frame)) == 1:
-            print("Obstacle")
+        _, frame = tracker.track(np.array(frame))
+        show(frame)
         frame = get_frame(vid_stream, stream)
         if frame is None:
             more_frames = False
