@@ -42,3 +42,4 @@ class FrameProc:
         frame_undistorted = frame_undistorted[y:y+h_2, x:x+w_2]
     
         return frame_undistorted
+
