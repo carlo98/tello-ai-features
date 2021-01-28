@@ -47,23 +47,16 @@ mkdir chessboards
 ## Control commands
 All control commands are described in telloCV.py.
 
-## Files
-telloCV.py: controller
-
-face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py" DANGER!
-
-svm.py: Creates a SVM capable of recognize faces, at the top of the file is shown how one should organize the images. [Face recognition](https://github.com/ageitgey/face_recognition)
-
-collision_avoidance.py: It uses opencv canny edge detector to detect edges and uses the output as input for a neural network which performs collision avoidance, chooses whether to go forward or turn. DANGER!
-
-train_model.ipynb: Can be used to train a NN using images in folder "data" and saving the NN in folder "saved_models". In order to save images look at the commands in telloCV.py
-
 ### Collision avoidance
 In order to perform collision avoidance a neural network is required, train it with 'train_model.ipynb'.
 
 The images can be acquired from telloCV.py ('f' for image to be labelled as 'free', 'b' for image to be labelled as 'blocked').
 
 Once the NN has been trained and saved in folder 'saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing 'q' while in telloCV.py.
+
+In order to provide fast inference for collision avoidance also in pc without GPU a small NN is provided, it accepts in input the edges computed from raw images; this approach has led to a reduction in compution time of 2/3 on intel-i5, with respect to AlexNet.
+
+The drawback is the amount of training images required, due to the loss of transfer learning capabilities.
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
@@ -78,3 +71,20 @@ IMPORTANT: At the moment only one between face recognition and collision avoidan
 Save 15-20 images of a chessboard, made with the camera of tello, in the folder chessboards and call them n.jpg, (n=0, 1, ...).
 
 Use the jupyter notebook 'camera_calibration' to compute the parameters and then copy and paste them in the python script 'image_processing.py'.
+
+## Files
+telloCV.py: controller
+
+face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py" DANGER!
+
+svm.py: Creates a SVM capable of recognize faces, at the top of the file is shown how one should organize the images. [Face recognition](https://github.com/ageitgey/face_recognition)
+
+collision_avoidance.py: It uses opencv canny edge detector to detect edges and uses the output as input for a neural network which performs collision avoidance, chooses whether to go forward or turn. DANGER!
+
+train_model.ipynb: Can be used to train a NN using images in folder "data" and saving the NN in folder "saved_models". In order to save images look at the commands in telloCV.py
+
+camera_calibration.ipynb: Can be used to compute the camera parameters.
+
+image_processing.py: Provides a class which computes undistorted images, given camera parameters.
+
+model.py: NN model.
