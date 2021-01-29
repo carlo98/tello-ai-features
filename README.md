@@ -22,12 +22,6 @@ cd TelloPy
 python setup.py bdist_wheel
 pip install dist/tellopy-*.dev*.whl --upgrade
 ```
-then close everything and open a new terminal, in order to check if requirements have been installed:
-```
-conda activate <env>
-pip freeze
-```
-Compare the list of packages installed to those in the file requirements.txt
 
 For collision avoidance
 ```
