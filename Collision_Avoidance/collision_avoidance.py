@@ -92,16 +92,11 @@ class Agent:
         
         self.saliency_mapper = SaliencyDoG(pyramid_height=5, shift=5, ch_3=False,
                               low_pass_filter=True, multi_layer_map=False)
-
-        mean = 255.0 * np.array([0.485, 0.456, 0.406])
-        stdev = 255.0 * np.array([0.229, 0.224, 0.225])
-
-        self.resize = torchvision.transforms.Resize((224, 224))
         
     def preprocess(self, x):
         x = self.saliency_mapper.generate_saliency(x)
-        x = cv2.GaussianBlur(x, (3, 3), 5)
-        x = cv2.GaussianBlur(x, (3, 3), 5)
+        x = cv2.medianBlur(x, 9) # Reduce impulse noise
+        x = cv2.GaussianBlur(x, (3, 3), 0.5) # Reduce linear noise
         y = torch.from_numpy(x.get()).float()
         y = y.to(self.device)
         y = y[None, None, ...]

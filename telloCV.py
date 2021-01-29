@@ -90,10 +90,7 @@ class TelloCV(object):
         self.date_fmt = '%Y-%m-%d_%H%M%S'
         self.speed = 30
         if os.path.isdir('Collision_Avoidance/data'):
-            if os.path.isdir('Collision_Avoidance/data/blocked') and os.path.isdir('Collision_Avoidance/data/free'):
-                self.cont_blocked = len(os.listdir('Collision_Avoidance/data/blocked'))-2
-                self.cont_free = len(os.listdir('Collision_Avoidance/data/free'))-2
-            else:
+            if not os.path.isdir('Collision_Avoidance/data/blocked') or not os.path.isdir('Collision_Avoidance/data/free'):
                 print("Either 'blocked' folder or 'free' folder or both don't exist, any attempt to save images for NN training will fail!")
         else:
             print("'data' folder doesn't exists, any attempt to save images for NN training will fail!")
@@ -241,29 +238,25 @@ class TelloCV(object):
         image = self.write_hud(image)
         if self.record:
             self.record_vid(frame)
-        
-        #image = self.tracker.draw_arrows(image)
 
         cmd = ""
         if self.save_frame:
             if self.blocked_free == 0:
-                cv2.imwrite("data/blocked/"+str(self.cont_blocked)+".png", x)
-                self.cont_blocked += 1
+                cv2.imwrite("Collision_Avoidance/data/blocked/"+datetime.datetime.now().strftime(self.date_fmt)+".png", x)
             elif self.blocked_free == 1:
-                cv2.imwrite("data/free/"+str(self.cont_free)+".png", x)
-                self.cont_free += 1
+                cv2.imwrite("Collision_Avoidance/data/free/"+datetime.datetime.now().strftime(self.date_fmt)+".png", x)
             self.save_frame = False
             
         if self.avoidance:
             cmd_agent, display_frame = self.agent.track(x)
             if cmd_agent == 1:
                 cmd = "clockwise"
-                if self.track_cmd is not "":
+                if self.track_cmd is not "" and self.track_cmd is not "clockwise" :
                     getattr(self.drone, self.track_cmd)(0)
                 getattr(self.drone, cmd)(self.speed)
                 self.track_cmd = cmd
             else:
-                if self.track_cmd is not "":
+                if self.track_cmd is not "" and self.track_cmd is not "forward":
                     getattr(self.drone, self.track_cmd)(0)
                 cmd = "forward"
                 getattr(self.drone, cmd)(self.speed)
@@ -275,7 +268,9 @@ class TelloCV(object):
             readings, display_frame = self.tracker.track(image)
             xoff, yoff, distance_measure = self.interpolate_readings(copy.deepcopy(readings))
             if xoff == -1:
-                cmd = ""
+                if self.track_cmd is not "":
+                    getattr(self.drone, self.track_cmd)(0)
+                    self.track_cmd = ""
             elif xoff < -self.distance:
                 cmd = "counter_clockwise"
             elif xoff > self.distance:
