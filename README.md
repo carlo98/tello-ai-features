@@ -42,7 +42,7 @@ mkdir Camera_Calibration/chessboards
 All control commands are described in telloCV.py.
 
 ## Collision avoidance
-In order to perform collision avoidance a neural network is required, train it with 'Collision_Avoidance/train_model.ipynb'.
+In order to perform collision avoidance a neural network is required, train it with 'Collision_Avoidance/train_model.ipynb', it needs to be launched from 'Collision_Avoidance' folder.
 
 The images can be acquired from telloCV.py ('f' for image to be labelled as 'free', 'b' for image to be labelled as 'blocked').
 

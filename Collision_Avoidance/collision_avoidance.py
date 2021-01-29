@@ -12,8 +12,6 @@ import torch.nn.functional as F
 import time
 from Collision_Avoidance.model import tommy_net
 from Collision_Avoidance.saliency_map import SaliencyDoG
-#from model import tommy_net
-#from saliency_map import SaliencyDoG
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""

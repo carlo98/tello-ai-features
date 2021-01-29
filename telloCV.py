@@ -89,8 +89,14 @@ class TelloCV(object):
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
         self.speed = 30
-        self.cont_blocked = 0
-        self.cont_free = 0
+        if os.path.isdir('Collision_Avoidance/data'):
+            if os.path.isdir('Collision_Avoidance/data/blocked') and os.path.isdir('Collision_Avoidance/data/free'):
+                self.cont_blocked = len(os.listdir('Collision_Avoidance/data/blocked'))-2
+                self.cont_free = len(os.listdir('Collision_Avoidance/data/free'))-2
+            else:
+                print("Either 'blocked' folder or 'free' folder or both don't exist, any attempt to save images for NN training will fail!")
+        else:
+            print("'data' folder doesn't exists, any attempt to save images for NN training will fail!")
         self.avoidance = False
         self.save_frame = False
         self.blocked_free = 0
