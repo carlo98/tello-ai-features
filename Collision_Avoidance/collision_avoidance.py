@@ -10,10 +10,10 @@ import cv2
 import numpy as np
 import torch.nn.functional as F
 import time
-#from Collision_Avoidance.model import tommy_net
-#from Collision_Avoidance.saliency_map import SaliencyDoG
-from model import tommy_net
-from saliency_map import SaliencyDoG
+from Collision_Avoidance.model import tommy_net
+from Collision_Avoidance.saliency_map import SaliencyDoG
+#from model import tommy_net
+#from saliency_map import SaliencyDoG
 
 def main():
     """Handles inpur from file or stream, tests the tracker class"""
@@ -93,7 +93,7 @@ class Agent:
         self.model = self.model.to(self.device)
         
         self.saliency_mapper = SaliencyDoG(pyramid_height=5, shift=5, ch_3=False,
-                              low_pass_filter=False, multi_layer_map=False)
+                              low_pass_filter=True, multi_layer_map=False)
 
         mean = 255.0 * np.array([0.485, 0.456, 0.406])
         stdev = 255.0 * np.array([0.229, 0.224, 0.225])
@@ -101,8 +101,9 @@ class Agent:
         self.resize = torchvision.transforms.Resize((224, 224))
         
     def preprocess(self, x):
-        x = cv2.GaussianBlur(x, (3, 3), 5)
         x = self.saliency_mapper.generate_saliency(x)
+        x = cv2.GaussianBlur(x, (3, 3), 5)
+        x = cv2.GaussianBlur(x, (3, 3), 5)
         y = torch.from_numpy(x.get()).float()
         y = y.to(self.device)
         y = y[None, None, ...]
