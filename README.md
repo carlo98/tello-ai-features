@@ -50,9 +50,9 @@ Once the NN has been trained and saved in folder 'Collision_Avoidance/saved_mode
 
 The NN provided in 'Collision_Avoidance/saved_models' has not been fully trained so pay attention please, it's there only to provide a starting point for transfer learning.
 
-In order to provide fast inference for collision avoidance also in pc without GPU a small NN is provided, it accepts in input the saliency maps computed from raw images; this approach has led to a reduction in compution time of 2/3 on intel-i5, with respect to AlexNet.
+In order to provide fast inference for collision avoidance also in pc without GPU a small NN is provided, it accepts in input the saliency maps computed from raw images; this approach has led to a reduction in compution time of approximately 1/2 - 2/3 on intel-i5, with respect to AlexNet.
 
-The drawback is the amount of training images required, due to the loss of transfer learning capabilities.
+The drawback is the amount of training images required, due to a partial loss of transfer learning weights.
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
