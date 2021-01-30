@@ -41,6 +41,7 @@ from Camera_Calibration.process_image import FrameProc
 from scipy.interpolate import interp1d
 import sys
 
+
 def main():
     """ Create a tello controller and show the video feed."""
     tellotrack = TelloCV()
@@ -69,7 +70,8 @@ def main():
     finally:
         tellotrack.drone.quit()
         cv2.destroyAllWindows()
-        
+
+
 def show(frame):
     """show the frame to cv2 window"""
     cv2.imshow("Frame", frame)
@@ -78,6 +80,7 @@ def show(frame):
     # if the 'q' key is pressed, stop the loop
     if key == ord("q"):
         exit()
+
 
 class TelloCV(object):
     """
@@ -102,6 +105,8 @@ class TelloCV(object):
         self.reward = 0
         self.episode_cont = 1
         self.current_step = 0
+        self.old_state = None
+        self.current_state = None
         self.save_frame = False
         self.blocked_free = 0
         self.distance = 100
@@ -109,7 +114,7 @@ class TelloCV(object):
         self.area_max = 8000
         self.track_cmd = ""
         self.ca_agent = Agent()
-        self.rl_agent = RL_Agent()
+        self.rl_agent = RL_Agent(self.ca_agent.model.parameters())
         self.tracker = Tracker()
         self.drone = tellopy.Tello()
         self.init_drone()
@@ -134,7 +139,6 @@ class TelloCV(object):
                              self.flight_data_handler)
         self.drone.subscribe(self.drone.EVENT_FILE_RECEIVED,
                              self.handle_flight_received)
-
 
     def on_press(self, keyname):
         """handler for keyboard listener"""
@@ -206,9 +210,9 @@ class TelloCV(object):
         self.key_listener.start()
         
     def interpolate_readings(self, raw_readings):
-        '''
+        """
         Predicts next position of target
-        ''' 
+        """
         readings = []
         readings_index = []
         flag = True # Set to false if last reading has no face
@@ -231,7 +235,6 @@ class TelloCV(object):
             return readings[0][0], readings[0][1], readings[0][2]
 
         return -1, -1, -1
-
 
     def process_frame(self, frame):
         """converts frame to cv2 image and show"""
@@ -262,17 +265,25 @@ class TelloCV(object):
         
             ## Start Reinforcement Learning code
             if self.rl_training:
+                self.current_state = x
                 if self.track_cmd == "forward":  # Reward each forward movement
-                    self.reward += 1 / rl_agent.max_steps
-                if self.current_step >= rl_agent.max_steps:
+                    new_reward = 1 / self.rl_agent.max_steps
+                    self.reward += new_reward
+                    if self.old_state is not None:
+                        self.rl_agent.update_model(self.ca_agent.model, self.old_state, 1, new_reward, self.current_state)
+                else:
+                    if self.old_state is not None:
+                        self.rl_agent.update_model(self.ca_agent.model, self.old_state, 0, 0, self.current_state)
+                if self.current_step >= self.rl_agent.max_steps:
                     self.toggle_episode_done(False)
                 self.current_step += 1
+                self.old_state = copy.deepcopy(self.current_state)
             ## End Reinforcement Learning code
             
             cmd_ca_agent, display_frame = self.ca_agent.track(x)
             if cmd_ca_agent == 1:
                 cmd = "clockwise"
-                if self.track_cmd is not "" and self.track_cmd is not "clockwise" :
+                if self.track_cmd is not "" and self.track_cmd is not "clockwise":
                     getattr(self.drone, self.track_cmd)(0)
                 getattr(self.drone, cmd)(self.speed)
                 self.track_cmd = cmd
@@ -440,7 +451,10 @@ class TelloCV(object):
             self.reward -= -1
         else:
             print("Episode completed, good Tommy!")
-        print("Episode Reward: ", self.reward)
+        print("Episode ", self.episode_cont, " reward: ", self.reward)
+        if self.old_state is not None:
+            self.rl_agent.update_model(self.ca_agent.model, self.old_state, lambda: 0 if self.track_cmd == "clockwise" else 1, -1, self.current_state)
+        self.rl_agent.save_model(self.ca_agent, self.episode_cont)
         self.episode_cont += 1
         self.reward = 0
         self.current_step = 0

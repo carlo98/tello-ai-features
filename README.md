@@ -42,11 +42,15 @@ mkdir Camera_Calibration/chessboards
 All control commands are described in telloCV.py.
 
 ## Collision avoidance
-In order to perform collision avoidance a neural network is required, train it with 'Collision_Avoidance/train_model.ipynb', it needs to be launched from 'Collision_Avoidance' folder.
+From repository's root folder:
+```
+python3 telloCV.py
+```
+In order to start/stop press '1'.
 
 The images can be acquired from telloCV.py ('f' for image to be labelled as 'free', 'b' for image to be labelled as 'blocked').
 
-Once the NN has been trained and saved in folder 'Collision_Avoidance/saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing '1' while in telloCV.py.
+Once the NN has been trained and saved in folder 'Collision_Avoidance/saved_models' as best_model.pth.
 
 The NN provided in 'Collision_Avoidance/saved_models' has not been fully trained so pay attention please, it's there only to provide a starting point for transfer learning.
 
@@ -54,12 +58,38 @@ In order to provide fast inference for collision avoidance also in pc without GP
 
 The drawback is the amount of training images required, due to a partial loss of transfer learning weights.
 
+In order to perform collision avoidance a neural network is required, train it with 'Collision_Avoidance/train_model.ipynb', it needs to be launched from 'Collision_Avoidance' folder.
+
+From Collision_Avoidance folder:
+```
+jupyter notebook
+```
+
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
+### Reinforcement Learning Training
+From repository's root folder:
+```
+python3 telloCV.py
+```
+In order to start/stop press '3'.
+
+It is possible to further train the collision avoidance model with online reinforcement learning, this relies on the user to detect collisions by pressing 'x'. If no collision is detected by the user each episode will terminate after a given amount of steps (default: 100, change in 'Collision_Avoidance/RL.py').
+
+Reward: +1/max_steps_per_episode if agent decides to go forward, 0 if it turns, -1 for collisions.
+
+Do not attempt to train a full model with this method because it requires a lot of time and it would seem nearly impossible, first get a collision avoidance model trained with 'train_model.pynb' as satisfactory as possible and then proceed with this.
+
 ## Face recognition
+From repository's root folder:
+```
+python3 telloCV.py
+```
+In order to start/stop press '2'.
+
 The binarized svm in the repo, "Face_Recognition/svm_fam.bin", should be replaced with an svm fitted with your images, using the script "Face_Recognition/svm.py".
 
-Instrunctions on how to organize the images are available in the script.
+Instructions on how to organize the images are available in the script.
 
 By changing the two parameters at the beginning of the python script 'Face_Recognition/face_rec_tracker.py' one can choose which person the tello should track and the ratio between recall and speed, for face detection and recognition.
 
@@ -69,6 +99,11 @@ IMPORTANT: At the moment only one between face recognition and collision avoidan
 Save 15-20 images of a chessboard, made with the camera of tello, in the folder 'Camera_Calibration/chessboards' and call them n.jpg, (n=0, 1, ...).
 
 Use the jupyter notebook 'Camera_Calibration/camera_calibration.ipynb' to compute the parameters and then copy and paste them in the python script 'Camera_Calibration/process_image.py'.
+
+From Camera Calibration folder:
+```
+jupyter notebook
+```
 
 ## Files
 telloCV.py: controller
