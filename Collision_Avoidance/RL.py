@@ -51,8 +51,6 @@ class RL_Agent:
     def update_model(self, episode_num):
     
         mini_batch = random.sample(self.memory, self.batch_size)
-        X_batch = np.empty(self.state_size, dtype=np.float64)
-        Y_batch = np.empty((0, self.action_size), dtype=np.float64)
 
         for i in range(self.batch_size):
             states = mini_batch[i][0]
@@ -76,18 +74,8 @@ class RL_Agent:
                 next_target = self.model(next_states)
 
             next_q_value = self.getQvalue(rewards, next_target, dones)
-
-            #X_batch = np.append(X_batch, states.detach().numpy(), axis=0)
-            #Y_sample = q_value.detach().numpy()
-
-            #Y_sample[0][actions] = next_q_value
-            #Y_batch = np.append(Y_batch, np.array([Y_sample[0]]), axis=0)
-
-            #if dones:
-            #    X_batch = np.append(X_batch, next_states.detach().numpy(), axis=0)
-            #    Y_batch = np.append(Y_batch, np.array([[rewards] * self.action_size]), axis=0)
                 
-            loss = F.smooth_l1_loss(torch.tensor(next_q_value, dtype=torch.float32).requires_grad_(), q_value)
+            loss = F.smooth_l1_loss(torch.tensor(next_q_value, dtype=torch.float32).requires_grad_(), torch.max(q_value))
             self.optimizer.zero_grad()
             loss.backward()
 
