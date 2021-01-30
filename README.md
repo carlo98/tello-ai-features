@@ -121,7 +121,7 @@ From Camera Calibration folder:
 jupyter notebook
 ```
 
-## Files <a name="f"></a>
+## Files Description <a name="f"></a>
 telloCV.py: controller
 
 Face_Recognition/face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py" DANGER!
