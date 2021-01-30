@@ -25,6 +25,7 @@ conda activate <env>
 conda install pip
 pip install numpy av pynput face-recognition sklearn torch jupyter
 ```
+
 TelloPy:
 ```
 git clone https://github.com/hanyazou/TelloPy
@@ -47,6 +48,11 @@ mkdir Collision_Avoidance/saliency/free
 For RL training:
 ```
 mkdir Collision_Avoidance/rl_saved_models
+```
+
+For Face Recognition:
+```
+mkdir Face_Recognition/train_dir
 ```
 
 For camera calibration
@@ -116,6 +122,10 @@ python3 telloCV.py
 In order to start/stop press '2'.
 
 The binarized svm in the repo, "Face_Recognition/svm_fam.bin", should be replaced with an svm fitted with your images, using the script "Face_Recognition/svm.py".
+From Face Recognition folder:
+```
+python3 svm.py
+```
 
 Instructions on how to organize the images are available in the script.
 
@@ -149,6 +159,8 @@ Camera_Calibration/camera_calibration.ipynb: Can be used to compute the camera p
 Camera_Calibration/process_image.py: Provides a class which computes undistorted images, given camera parameters.
 
 Collision_Avoidance/model.py: NN model.
+
+Collision_Avoidance/RL.py: Reinforcement learning script, change parameters in the 'init' method to change saving/training frequencies and other RL parameters.
 
 ## References <a name="ref"></a>
 

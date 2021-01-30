@@ -67,8 +67,8 @@ for person in train_dir:
 clf = svm.SVC(gamma='scale')
 print("Clf initialized, starting fit.")
 clf.fit(encodings,names)
-
-pickle.dump(clf, "svm_fam.bin")
+with open("svm_fam.bin", "wb") as f:
+    pickle.dump(clf, f)
     
 # Get a reference to webcam #0 (the default one)
 video_capture = cv2.VideoCapture(0)
