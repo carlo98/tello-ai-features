@@ -40,6 +40,8 @@ from Collision_Avoidance.RL import RL_Agent
 from Camera_Calibration.process_image import FrameProc
 from scipy.interpolate import interp1d
 import sys
+import traceback
+import threading 
 
 
 def main():
@@ -107,6 +109,7 @@ class TelloCV(object):
         self.current_step = 0
         self.old_state = None
         self.current_state = None
+        self.append_sem = threading.Semaphore(1)
         self.save_frame = False
         self.blocked_free = 0
         self.distance = 100
@@ -114,7 +117,7 @@ class TelloCV(object):
         self.area_max = 8000
         self.track_cmd = ""
         self.ca_agent = Agent()
-        self.rl_agent = RL_Agent(self.ca_agent.model.parameters())
+        self.rl_agent = RL_Agent(self.ca_agent.device)
         self.tracker = Tracker()
         self.drone = tellopy.Tello()
         self.init_drone()
@@ -262,24 +265,6 @@ class TelloCV(object):
             
         ## Start Collision Avoidance code
         if self.avoidance:
-        
-            ## Start Reinforcement Learning code
-            if self.rl_training:
-                self.current_state = x
-                if self.track_cmd == "forward":  # Reward each forward movement
-                    new_reward = 1 / self.rl_agent.max_steps
-                    self.reward += new_reward
-                    if self.old_state is not None:
-                        self.rl_agent.update_model(self.ca_agent.model, self.old_state, 1, new_reward, self.current_state)
-                else:
-                    if self.old_state is not None:
-                        self.rl_agent.update_model(self.ca_agent.model, self.old_state, 0, 0, self.current_state)
-                if self.current_step >= self.rl_agent.max_steps:
-                    self.toggle_episode_done(False)
-                self.current_step += 1
-                self.old_state = copy.deepcopy(self.current_state)
-            ## End Reinforcement Learning code
-            
             cmd_ca_agent, display_frame = self.ca_agent.track(x)
             if cmd_ca_agent == 1:
                 cmd = "clockwise"
@@ -293,6 +278,24 @@ class TelloCV(object):
                 cmd = "forward"
                 getattr(self.drone, cmd)(self.speed)
                 self.track_cmd = cmd
+                
+            ## Start Reinforcement Learning code
+            if self.rl_training:
+                self.current_state = display_frame.get()
+                if self.current_state is not None and self.old_state is not None:
+                    if self.track_cmd == "forward":  # Reward each forward movement
+                        new_reward = 1 / self.rl_agent.max_steps
+                        self.reward += new_reward
+                    else:
+                        new_reward = 0
+                    self.append_sem.acquire()
+                    self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), new_reward, self.current_state, 0)
+                    self.append_sem.release()
+                    if self.current_step >= self.rl_agent.max_steps:
+                        self.toggle_episode_done(False)
+                    self.current_step += 1
+                self.old_state = copy.deepcopy(self.current_state)
+            ## End Reinforcement Learning code
                 
             image = display_frame
         ## End Collision Avoidance code
@@ -446,15 +449,18 @@ class TelloCV(object):
         """
         RL episode finished, either max number of steps or collision detected.
         """
+        self.append_sem.acquire()
         if collision:
             print("Collision detected by you, great work!")
-            self.reward -= -1
+            self.reward -= 1
+            self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), -1, self.current_state, 1)
         else:
+            self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), 0, self.current_state, 1)
             print("Episode completed, good Tommy!")
+        self.append_sem.release()
         print("Episode ", self.episode_cont, " reward: ", self.reward)
-        if self.old_state is not None:
-            self.rl_agent.update_model(self.ca_agent.model, self.old_state, lambda: 0 if self.track_cmd == "clockwise" else 1, -1, self.current_state)
-        self.rl_agent.save_model(self.ca_agent, self.episode_cont)
+        self.rl_agent.update_model(self.episode_cont)
+        self.rl_agent.save_model(self.episode_cont)
         self.episode_cont += 1
         self.reward = 0
         self.current_step = 0
