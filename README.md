@@ -12,7 +12,7 @@ Implements frontal collision avoidance with NN, look at corresponding paragraph.
 2. [Control Commands](#control)
 3. [Collision Avoidance](#ca)
     1. [Reinforcement Learning](#rl)
-4. [Face Recognition](#fr)  
+4. [Face Recognition](#fr)
 5. [Camera Calibration](#cc)
 6. [Files Description](#f)
 7. [References](#ref)
@@ -97,9 +97,13 @@ In order to start/stop press '3'.
 
 It is possible to further train the collision avoidance model with online reinforcement learning, this relies on the user to detect collisions by pressing 'x'. If no collision is detected by the user each episode will terminate after a given amount of steps (default: 100, change in 'Collision_Avoidance/RL.py').
 
+Every time an episode ends the drone stops, giving you the time to move it to another position while the network is training; in order to restart inference press 'x' a second time.
+
 Reward: +1/max_steps_per_episode if agent decides to go forward, 0 if it turns, -1 for collisions.
 
 Do not attempt to train a full model with this method because it requires a lot of time and it would seem nearly impossible, first get a collision avoidance model trained with 'train_model.pynb' as satisfactory as possible and then proceed with this.
+
+The model trained by RL is saved into the folder 'Collision_Avoidance/rl_saved_models'.
 
 ## Face recognition <a name="fr"></a>
 From repository's root folder:

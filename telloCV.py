@@ -22,6 +22,7 @@ Controls:
  - 1 to toggle collision avoidance
  - 2 to toggle tracking
  - 3 to toggle reinforcement learning training for collision avoidance (If activated then also collision avoidance will be ON)
+ - x to end/start episode of RL
  - F to save frame as free (collision avoidance)
  - B to save frame as blocked (collision avoidance) 
 """
@@ -41,7 +42,7 @@ from Camera_Calibration.process_image import FrameProc
 from scipy.interpolate import interp1d
 import sys
 import traceback
-import threading 
+import threading
 
 
 def main():
@@ -97,6 +98,7 @@ class TelloCV(object):
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
         self.speed = 30
+        self.speed_hand = 60
         if os.path.isdir('Collision_Avoidance/data'):
             if not os.path.isdir('Collision_Avoidance/data/blocked') or not os.path.isdir('Collision_Avoidance/data/free'):
                 print("Either 'blocked' folder or 'free' folder or both don't exist, any attempt to save images for NN training will fail!")
@@ -110,14 +112,15 @@ class TelloCV(object):
         self.old_state = None
         self.current_state = None
         self.train_rl_sem = threading.Semaphore(1)
+        self.episode_start = True
         self.save_frame = False
         self.blocked_free = 0
-        self.distance = 100
+        self.distance = 70
         self.area_min = 4000
         self.area_max = 8000
         self.track_cmd = ""
         self.ca_agent = Agent()
-        self.rl_agent = RL_Agent(self.ca_agent.device)
+        self.rl_agent = RL_Agent(self.ca_agent.model, self.ca_agent.device)
         self.tracker = Tracker()
         self.drone = tellopy.Tello()
         self.init_drone()
@@ -156,10 +159,16 @@ class TelloCV(object):
                 exit(0)
             if keyname in self.controls:
                 key_handler = self.controls[keyname]
-                if isinstance(key_handler, str):
-                    getattr(self.drone, key_handler)(self.speed)
+                if keyname in ['1', '2', '3', 'x']:
+                    if isinstance(key_handler, str):
+                        getattr(self.drone, key_handler)(self.speed)
+                    else:
+                        key_handler(self.speed)
                 else:
-                    key_handler(self.speed)
+                    if isinstance(key_handler, str):
+                        getattr(self.drone, key_handler)(self.speed_hand)
+                    else:
+                        key_handler(self.speed_hand)
         except AttributeError:
             print('special key {0} pressed'.format(keyname))
 
@@ -168,7 +177,7 @@ class TelloCV(object):
         self.keydown = False
         keyname = str(keyname).strip('\'')
         print('-' + keyname)
-        if keyname in self.controls:
+        if keyname in self.controls and keyname != 'x':
             key_handler = self.controls[keyname]
             if isinstance(key_handler, str):
                 getattr(self.drone, key_handler)(0)
@@ -280,7 +289,7 @@ class TelloCV(object):
                 self.track_cmd = cmd
                 
             ## Start Reinforcement Learning code
-            if self.rl_training:
+            if self.rl_training and self.episode_start:
                 self.current_state = display_frame.get()
                 if self.current_state is not None and self.old_state is not None:
                     if self.track_cmd == "forward":  # Reward each forward movement
@@ -449,27 +458,31 @@ class TelloCV(object):
         """
         RL episode finished, either max number of steps or collision detected.
         """
-        self.train_rl_sem.acquire()
-        if self.track_cmd is not "":
-            getattr(self.drone, self.track_cmd)(0)
-            self.track_cmd = ""
-        self.speed = 0
-        
-        if collision:
-            print("Collision detected by you, great work!")
-            self.reward -= 1
-            self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), -1, self.current_state, 1)
+        if self.episode_start:
+            if self.track_cmd is not "":
+                getattr(self.drone, self.track_cmd)(0)
+                self.track_cmd = ""
+            self.speed = 0
+            self.train_rl_sem.acquire()
+            if collision:
+                print("Collision detected by you, great work!")
+                self.reward -= 1
+                self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), -1, self.current_state, 1)
+            else:
+                self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), 0, self.current_state, 1)
+                print("Episode completed, good Tommy!")
+            print("Episode ", self.episode_cont, " reward: ", self.reward)
+            self.rl_agent.update_model(self.ca_agent.model, self.episode_cont)
+            self.rl_agent.save_model(self.ca_agent.model, self.episode_cont)
+            self.train_rl_sem.release()
+            self.episode_start = False
         else:
-            self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), 0, self.current_state, 1)
-            print("Episode completed, good Tommy!")
-        print("Episode ", self.episode_cont, " reward: ", self.reward)
-        self.rl_agent.update_model(self.episode_cont)
-        self.rl_agent.save_model(self.episode_cont)
-        self.train_rl_sem.release()
-        self.speed = 30
-        self.episode_cont += 1
-        self.reward = 0
-        self.current_step = 0
+            print("Episode Start")
+            self.episode_start = True
+            self.speed = 30
+            self.episode_cont += 1
+            self.reward = 0
+            self.current_step = 0
 
     def toggle_zoom(self, speed):
         """
