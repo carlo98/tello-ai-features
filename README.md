@@ -61,6 +61,9 @@ For features:
 - '1': To toggle collision avoidance
 - '2': To toggle face recognition
 - '3': To toggle reinforcement learning training
+- 'x': To end/start episode of RL
+- 'f': To take a picture and label it as 'free'
+- 'b': To take a picture and label it as 'blocekd'
 
 ## Collision avoidance <a name="ca"></a>
 From repository's root folder:
