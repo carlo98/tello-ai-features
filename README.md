@@ -7,7 +7,17 @@ Identifies a known face in the image, infers its smallest enclosing rectangle an
 
 Implements frontal collision avoidance with NN, look at corresponding paragraph.
 
-## Installation
+# Table of contents
+1. [Installation](#installation)
+2. [Control Commands](#control)
+3. [Collision Avoidance](#ca)
+    1. [Reinforcement Learning](#rl)
+4. [Face Recognition](#fr)
+5. [Camera Calibration](#cc)
+6. [Files Description](#f)
+7. [References](#ref)
+
+## Installation <a name="installation"></a>
 Install anaconda and opencv and then:
 ```
 conda create --name <env> python=3.7 # or python=3.6
@@ -33,20 +43,35 @@ mkdir Collision_Avoidance/saliency
 mkdir Collision_Avoidance/saliency/blocked
 mkdir Collision_Avoidance/saliency/free
 ```
+
+For RL training:
+```
+mkdir Collision_Avoidance/rl_saved_models
+```
+
 For camera calibration
 ```
 mkdir Camera_Calibration/chessboards
 ```
 
-## Control commands
+## Control commands <a name="control"></a>
 All control commands are described in telloCV.py.
 
-## Collision avoidance
-In order to perform collision avoidance a neural network is required, train it with 'Collision_Avoidance/train_model.ipynb', it needs to be launched from 'Collision_Avoidance' folder.
+For features:
+- '1': To toggle collision avoidance
+- '2': To toggle face recognition
+- '3': To toggle reinforcement learning training
+
+## Collision avoidance <a name="ca"></a>
+From repository's root folder:
+```
+python3 telloCV.py
+```
+In order to start/stop press '1'.
 
 The images can be acquired from telloCV.py ('f' for image to be labelled as 'free', 'b' for image to be labelled as 'blocked').
 
-Once the NN has been trained and saved in folder 'Collision_Avoidance/saved_models' as best_model.pth, one can activate the collision avoidance feature by pressing '1' while in telloCV.py.
+Once the NN has been trained and saved in folder 'Collision_Avoidance/saved_models' as best_model.pth.
 
 The NN provided in 'Collision_Avoidance/saved_models' has not been fully trained so pay attention please, it's there only to provide a starting point for transfer learning.
 
@@ -54,23 +79,58 @@ In order to provide fast inference for collision avoidance also in pc without GP
 
 The drawback is the amount of training images required, due to a partial loss of transfer learning weights.
 
+In order to perform collision avoidance a neural network is required, train it with 'Collision_Avoidance/train_model.ipynb', it needs to be launched from 'Collision_Avoidance' folder.
+
+From Collision_Avoidance folder:
+```
+jupyter notebook
+```
+
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
-## Face recognition
+### Reinforcement Learning Training <a name="rl"></a>
+From repository's root folder:
+```
+python3 telloCV.py
+```
+In order to start/stop press '3'.
+
+It is possible to further train the collision avoidance model with online reinforcement learning, this relies on the user to detect collisions by pressing 'x'. If no collision is detected by the user each episode will terminate after a given amount of steps (default: 100, change in 'Collision_Avoidance/RL.py').
+
+Every time an episode ends the drone stops, giving you the time to move it to another position while the network is training; in order to restart inference press 'x' a second time.
+
+Reward: +1/max_steps_per_episode if agent decides to go forward, 0 if it turns, -1 for collisions.
+
+Do not attempt to train a full model with this method because it requires a lot of time and it would seem nearly impossible, first get a collision avoidance model trained with 'train_model.pynb' as satisfactory as possible and then proceed with this.
+
+The model trained by RL is saved into the folder 'Collision_Avoidance/rl_saved_models'.
+
+## Face recognition <a name="fr"></a>
+From repository's root folder:
+```
+python3 telloCV.py
+```
+In order to start/stop press '2'.
+
 The binarized svm in the repo, "Face_Recognition/svm_fam.bin", should be replaced with an svm fitted with your images, using the script "Face_Recognition/svm.py".
 
-Instrunctions on how to organize the images are available in the script.
+Instructions on how to organize the images are available in the script.
 
 By changing the two parameters at the beginning of the python script 'Face_Recognition/face_rec_tracker.py' one can choose which person the tello should track and the ratio between recall and speed, for face detection and recognition.
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
-## Camera Calibration
+## Camera Calibration <a name="cc"></a>
 Save 15-20 images of a chessboard, made with the camera of tello, in the folder 'Camera_Calibration/chessboards' and call them n.jpg, (n=0, 1, ...).
 
 Use the jupyter notebook 'Camera_Calibration/camera_calibration.ipynb' to compute the parameters and then copy and paste them in the python script 'Camera_Calibration/process_image.py'.
 
-## Files
+From Camera Calibration folder:
+```
+jupyter notebook
+```
+
+## Files Description <a name="f"></a>
 telloCV.py: controller
 
 Face_Recognition/face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py" DANGER!
@@ -87,7 +147,7 @@ Camera_Calibration/process_image.py: Provides a class which computes undistorted
 
 Collision_Avoidance/model.py: NN model.
 
-## References:
+## References <a name="ref"></a>
 
 If you are making use of this work in any way please reference the following articles in any report, publication, presentation, software release or any other associated materials:
 
