@@ -57,6 +57,11 @@ mkdir Camera_Calibration/chessboards
 ## Control commands <a name="control"></a>
 All control commands are described in telloCV.py.
 
+For features:
+- '1': To toggle collision avoidance
+- '2': To toggle face recognition
+- '3': To toggle reinforcement learning training
+
 ## Collision avoidance <a name="ca"></a>
 From repository's root folder:
 ```
