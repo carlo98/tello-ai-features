@@ -50,7 +50,7 @@ For RL training:
 mkdir Collision_Avoidance/rl_saved_models
 ```
 
-For Face Recognition:
+For face recognition:
 ```
 mkdir Face_Recognition/train_dir
 ```
@@ -74,6 +74,7 @@ For features:
 ## Collision avoidance <a name="ca"></a>
 From repository's root folder:
 ```
+conda activate <env>
 python3 telloCV.py
 ```
 In order to start/stop press '1'.
@@ -92,6 +93,7 @@ In order to perform collision avoidance a neural network is required, train it w
 
 From Collision_Avoidance folder:
 ```
+conda activate <env>
 jupyter notebook
 ```
 
@@ -100,6 +102,7 @@ IMPORTANT: At the moment only one between face recognition and collision avoidan
 ### Reinforcement Learning Training <a name="rl"></a>
 From repository's root folder:
 ```
+conda activate <env>
 python3 telloCV.py
 ```
 In order to start/stop press '3'.
@@ -117,6 +120,7 @@ The model trained by RL is saved into the folder 'Collision_Avoidance/rl_saved_m
 ## Face recognition <a name="fr"></a>
 From repository's root folder:
 ```
+conda activate <env>
 python3 telloCV.py
 ```
 In order to start/stop press '2'.
@@ -124,6 +128,7 @@ In order to start/stop press '2'.
 The binarized svm in the repo, "Face_Recognition/svm_fam.bin", should be replaced with an svm fitted with your images, using the script "Face_Recognition/svm.py".
 From Face Recognition folder:
 ```
+conda activate <env>
 python3 svm.py
 ```
 
@@ -140,6 +145,7 @@ Use the jupyter notebook 'Camera_Calibration/camera_calibration.ipynb' to comput
 
 From Camera Calibration folder:
 ```
+conda activate <env>
 jupyter notebook
 ```
 
