@@ -7,7 +7,17 @@ Identifies a known face in the image, infers its smallest enclosing rectangle an
 
 Implements frontal collision avoidance with NN, look at corresponding paragraph.
 
-## Installation
+# Table of contents
+1. [Installation](#installation)
+2. [Control Commands](#control)
+3. [Collision Avoidance](#ca)
+    1. [Reinforcement Learning](#rl)
+4. [Face Recognition](#fr)  
+5. [Camera Calibration](#cc)
+6. [Files Description](#f)
+7. [References](#ref)
+
+## Installation <a name="installation"></a>
 Install anaconda and opencv and then:
 ```
 conda create --name <env> python=3.7 # or python=3.6
@@ -33,15 +43,21 @@ mkdir Collision_Avoidance/saliency
 mkdir Collision_Avoidance/saliency/blocked
 mkdir Collision_Avoidance/saliency/free
 ```
+
+For RL training:
+```
+mkdir Collision_Avoidance/rl_saved_models
+```
+
 For camera calibration
 ```
 mkdir Camera_Calibration/chessboards
 ```
 
-## Control commands
+## Control commands <a name="control"></a>
 All control commands are described in telloCV.py.
 
-## Collision avoidance
+## Collision avoidance <a name="ca"></a>
 From repository's root folder:
 ```
 python3 telloCV.py
@@ -67,7 +83,7 @@ jupyter notebook
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
-### Reinforcement Learning Training
+### Reinforcement Learning Training <a name="rl"></a>
 From repository's root folder:
 ```
 python3 telloCV.py
@@ -80,7 +96,7 @@ Reward: +1/max_steps_per_episode if agent decides to go forward, 0 if it turns, 
 
 Do not attempt to train a full model with this method because it requires a lot of time and it would seem nearly impossible, first get a collision avoidance model trained with 'train_model.pynb' as satisfactory as possible and then proceed with this.
 
-## Face recognition
+## Face recognition <a name="fr"></a>
 From repository's root folder:
 ```
 python3 telloCV.py
@@ -95,7 +111,7 @@ By changing the two parameters at the beginning of the python script 'Face_Recog
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
 
-## Camera Calibration
+## Camera Calibration <a name="cc"></a>
 Save 15-20 images of a chessboard, made with the camera of tello, in the folder 'Camera_Calibration/chessboards' and call them n.jpg, (n=0, 1, ...).
 
 Use the jupyter notebook 'Camera_Calibration/camera_calibration.ipynb' to compute the parameters and then copy and paste them in the python script 'Camera_Calibration/process_image.py'.
@@ -105,7 +121,7 @@ From Camera Calibration folder:
 jupyter notebook
 ```
 
-## Files
+## Files <a name="f"></a>
 telloCV.py: controller
 
 Face_Recognition/face_rec_tracker.py: uses a SVM and python's face_recognition to recognize faces, the binary SVM can be computed with "svm.py" DANGER!
@@ -122,7 +138,7 @@ Camera_Calibration/process_image.py: Provides a class which computes undistorted
 
 Collision_Avoidance/model.py: NN model.
 
-## References:
+## References <a name="ref"></a>
 
 If you are making use of this work in any way please reference the following articles in any report, publication, presentation, software release or any other associated materials:
 

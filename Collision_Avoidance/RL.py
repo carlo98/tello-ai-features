@@ -6,10 +6,8 @@ from torch import nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.distributions as distributions
-import tdqm
 from collections import deque
-#from Collision_Avoidance.model import tommy_net
-from model import tommy_net
+from Collision_Avoidance.model import tommy_net
 
 
 class RL_Agent:
