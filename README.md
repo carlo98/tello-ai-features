@@ -1,4 +1,4 @@
-# tello-ai-tracker
+# Tello AI Features
 Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and uses [TelloPy](https://github.com/hanyazou/TelloPy).
 
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
