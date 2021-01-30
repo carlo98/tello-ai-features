@@ -109,7 +109,7 @@ class TelloCV(object):
         self.current_step = 0
         self.old_state = None
         self.current_state = None
-        self.append_sem = threading.Semaphore(1)
+        self.train_rl_sem = threading.Semaphore(1)
         self.save_frame = False
         self.blocked_free = 0
         self.distance = 100
@@ -288,9 +288,9 @@ class TelloCV(object):
                         self.reward += new_reward
                     else:
                         new_reward = 0
-                    self.append_sem.acquire()
+                    self.train_rl_sem.acquire()
                     self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), new_reward, self.current_state, 0)
-                    self.append_sem.release()
+                    self.train_rl_sem.release()
                     if self.current_step >= self.rl_agent.max_steps:
                         self.toggle_episode_done(False)
                     self.current_step += 1
@@ -449,7 +449,12 @@ class TelloCV(object):
         """
         RL episode finished, either max number of steps or collision detected.
         """
-        self.append_sem.acquire()
+        self.train_rl_sem.acquire()
+        if self.track_cmd is not "":
+            getattr(self.drone, self.track_cmd)(0)
+            self.track_cmd = ""
+        self.speed = 0
+        
         if collision:
             print("Collision detected by you, great work!")
             self.reward -= 1
@@ -457,10 +462,11 @@ class TelloCV(object):
         else:
             self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), 0, self.current_state, 1)
             print("Episode completed, good Tommy!")
-        self.append_sem.release()
         print("Episode ", self.episode_cont, " reward: ", self.reward)
         self.rl_agent.update_model(self.episode_cont)
         self.rl_agent.save_model(self.episode_cont)
+        self.train_rl_sem.release()
+        self.speed = 30
         self.episode_cont += 1
         self.reward = 0
         self.current_step = 0
