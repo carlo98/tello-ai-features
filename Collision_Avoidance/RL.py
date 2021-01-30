@@ -6,6 +6,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 from collections import deque
 from Collision_Avoidance.model import tommy_net
+import pickle
+import sys
+import os
 
 
 class RL_Agent:
@@ -13,6 +16,9 @@ class RL_Agent:
     def __init__(self, model, device):
         self.discount_factor = 0.8
         self.max_steps = 100
+        if not os.path.isdir("Collision_Avoidance/rl_saved_models/"):
+            print("Please first create the folder 'Collision_Avoidance/rl_saved_models/' with 'mkdir Collision_Avoidance/rl_saved_models/'.")
+            sys.exit()
         self.save_dir = "Collision_Avoidance/rl_saved_models/"
         self.save_freq = 5  # In episodes
         self.update_target_freq = 4  # In episodes
@@ -20,6 +26,10 @@ class RL_Agent:
         self.action_size = 2
         self.train_freq = 1  # In episodes
         self.memory = deque(maxlen=1000000)
+        if os.path.isfile(self.save_dir + "memory.bin"):
+            with open(self.save_dir + "memory.bin", "rb") as f:
+                self.memory = pickle.load(f)
+            print("Found pre-existing memory, loaded")
         self.device = device
         self.state_size = None
         
@@ -85,4 +95,6 @@ class RL_Agent:
 
     def save_model(self, model, num_episodes):
         if num_episodes % self.save_freq == 0:
-            torch.save(model.state_dict(), self.save_dir + "best_model_" + str(num_episodes) + ".pth")
+            torch.save(model.state_dict(), self.save_dir + "best_model_" + str(num_episodes) + ".pth")  # Save model state dict
+            with open(self.save_dir + "memory.bin", "wb") as f:
+                pickle.dump(self.memory, f)  # Save memory
