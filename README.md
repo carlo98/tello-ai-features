@@ -63,7 +63,7 @@ For features:
 - '3': To toggle reinforcement learning training
 - 'x': To end/start episode of RL
 - 'f': To take a picture and label it as 'free'
-- 'b': To take a picture and label it as 'blocekd'
+- 'b': To take a picture and label it as 'blocked'
 
 ## Collision avoidance <a name="ca"></a>
 From repository's root folder:
