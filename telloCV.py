@@ -15,11 +15,13 @@ Controls:
   (video and photos will be saved to a timestamped file in ~/Pictures/)
 - Z to toggle camera zoom state
   (zoomed-in widescreen or high FOV 4:3)
-- 2 to toggle tracking (At the moment only one between this and collision avoidance can be active)
 @author Leonie Buckley, Saksham Sinha and Jonathan Byrne
 @copyright 2018 see license file for details
 
- - 1 to toggle collision avoidance (At the moment only one between this and tracking can be active)
+   IMPORTANT: Only one feature (1, 2) can be activate at any time.
+ - 1 to toggle collision avoidance
+ - 2 to toggle tracking
+ - 3 to toggle reinforcement learning training for collision avoidance (If activated then also collision avoidance will be ON)
  - F to save frame as free (collision avoidance)
  - B to save frame as blocked (collision avoidance) 
 """
@@ -34,6 +36,7 @@ import cv2
 from pynput import keyboard
 from Face_Recognition.face_rec_tracker import Tracker
 from Collision_Avoidance.collision_avoidance import Agent
+from Collision_Avoidance.RL import RL_Agent
 from Camera_Calibration.process_image import FrameProc
 from scipy.interpolate import interp1d
 import sys
@@ -95,13 +98,18 @@ class TelloCV(object):
         else:
             print("'data' folder doesn't exists, any attempt to save images for NN training will fail!")
         self.avoidance = False
+        self.rl_training = False
+        self.reward = 0
+        self.episode_cont = 1
+        self.current_step = 0
         self.save_frame = False
         self.blocked_free = 0
         self.distance = 100
         self.area_min = 4000
         self.area_max = 8000
         self.track_cmd = ""
-        self.agent = Agent()
+        self.ca_agent = Agent()
+        self.rl_agent = RL_Agent()
         self.tracker = Tracker()
         self.drone = tellopy.Tello()
         self.init_drone()
@@ -182,14 +190,16 @@ class TelloCV(object):
             'Key.tab': lambda speed: self.drone.takeoff(),
             'Key.backspace': lambda speed: self.drone.land(),
             'p': lambda speed: self.palm_land(speed),
-            '2': lambda speed: self.toggle_tracking(speed),
             'r': lambda speed: self.toggle_recording(speed),
             'z': lambda speed: self.toggle_zoom(speed),
             'Key.enter': lambda speed: self.take_picture(speed),
             'b': lambda speed: self.toggle_blocked_free(0),
             'f': lambda speed: self.toggle_blocked_free(1),
-            '1': lambda speed: self.toggle_collisionAvoidance(speed)
-            
+            '1': lambda speed: self.toggle_collisionAvoidance(speed),
+            '2': lambda speed: self.toggle_tracking(speed),
+            '3': lambda speed: self.toggle_rl_training(speed),
+            # Reinforcement learning commands
+            'x': lambda speed: self.toggle_episode_done(True),
         }
         self.key_listener = keyboard.Listener(on_press=self.on_press,
                                               on_release=self.on_release)
@@ -247,9 +257,20 @@ class TelloCV(object):
                 cv2.imwrite("Collision_Avoidance/data/free/"+datetime.datetime.now().strftime(self.date_fmt)+".png", x)
             self.save_frame = False
             
+        ## Start Collision Avoidance code
         if self.avoidance:
-            cmd_agent, display_frame = self.agent.track(x)
-            if cmd_agent == 1:
+        
+            ## Start Reinforcement Learning code
+            if self.rl_training:
+                if self.track_cmd == "forward":  # Reward each forward movement
+                    self.reward += 1 / rl_agent.max_steps
+                if self.current_step >= rl_agent.max_steps:
+                    self.toggle_episode_done(False)
+                self.current_step += 1
+            ## End Reinforcement Learning code
+            
+            cmd_ca_agent, display_frame = self.ca_agent.track(x)
+            if cmd_ca_agent == 1:
                 cmd = "clockwise"
                 if self.track_cmd is not "" and self.track_cmd is not "clockwise" :
                     getattr(self.drone, self.track_cmd)(0)
@@ -263,7 +284,9 @@ class TelloCV(object):
                 self.track_cmd = cmd
                 
             image = display_frame
-            
+        ## End Collision Avoidance code
+        
+        ## Start Tracking code
         elif self.tracking:
             readings, display_frame = self.tracker.track(image)
             xoff, yoff, distance_measure = self.interpolate_readings(copy.deepcopy(readings))
@@ -291,7 +314,8 @@ class TelloCV(object):
                     self.track_cmd = ""
             
             image = display_frame
-            
+        ## End Tracking code
+        
         if cmd is not self.track_cmd:
             if cmd is not "":
                 print("track command:", cmd)
@@ -305,6 +329,7 @@ class TelloCV(object):
         stats = self.prev_flight_data.split('|')
         stats.append("Tracking:" + str(self.tracking))
         stats.append("Collision Avoidance NN:" + str(self.avoidance))
+        stats.append("RL Training:" + str(self.rl_training))
         if self.drone.zoom:
             stats.append("VID")
         else:
@@ -384,16 +409,41 @@ class TelloCV(object):
         if speed == 0:  # handle key up event
             return
         self.tracking = not self.tracking
+        self.avoidance = False
+        self.rl_training = False
         print("tracking:", self.tracking)
-        return
         
     def toggle_collisionAvoidance(self, speed):
         """ Handle avoidance keypress"""
         if speed == 0:  # handle key up event
             return
         self.avoidance = not self.avoidance
+        self.tracking = False
         print("avoidance:", self.avoidance)
-        return
+        
+    def toggle_rl_training(self, speed):
+        """ Handle reinforcement learning training keypress """
+        if speed == 0:  # handle key up event
+            return
+        self.rl_training = not self.rl_training
+        self.avoidance = self.rl_training
+        self.tracking = False
+        print("RL training:", self.rl_training)
+        print("avoidance:", self.avoidance)
+        
+    def toggle_episode_done(self, collision):
+        """
+        RL episode finished, either max number of steps or collision detected.
+        """
+        if collision:
+            print("Collision detected by you, great work!")
+            self.reward -= -1
+        else:
+            print("Episode completed, good Tommy!")
+        print("Episode Reward: ", self.reward)
+        self.episode_cont += 1
+        self.reward = 0
+        self.current_step = 0
 
     def toggle_zoom(self, speed):
         """
