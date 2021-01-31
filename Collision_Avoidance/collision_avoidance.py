@@ -104,22 +104,22 @@ class Agent:
 
     def track(self, frame):
         """NN Tracker"""
-        start_time = time.time()
+        #start_time = time.time()
         y, x = self.preprocess(frame)
         y = self.model(y)
         
-        print("Inference time: ", time.time()-start_time)
+        #print("Inference time: ", time.time()-start_time)
     
         # we apply the `softmax` function to normalize the output vector so it sums to 1 (which makes it a probability distribution)
         y = F.softmax(y, dim=1)
     
-        print(y)
+        #print(y)
         prob_blocked = float(y.flatten()[0])
     
         if prob_blocked < 0.30:
             return 0, x # forward
         else:
-            print("blocked")
+            #print("blocked")
             return 1, x # turn
 
 if __name__ == '__main__':

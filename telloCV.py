@@ -111,6 +111,7 @@ class TelloCV(object):
         self.current_step = 0
         self.old_state = None
         self.current_state = None
+        self.training_thread = None
         self.train_rl_sem = threading.Semaphore(1)
         self.episode_start = True
         self.save_frame = False
@@ -138,7 +139,7 @@ class TelloCV(object):
 
     def init_drone(self):
         """Connect, uneable streaming and subscribe to events"""
-        # self.drone.log.set_level(2)
+        self.drone.log.set_level(0)
         self.drone.connect()
         self.drone.start_video()
         self.drone.subscribe(self.drone.EVENT_FLIGHT_DATA,
@@ -177,7 +178,7 @@ class TelloCV(object):
         self.keydown = False
         keyname = str(keyname).strip('\'')
         print('-' + keyname)
-        if keyname in self.controls and keyname != 'x':
+        if keyname in self.controls and keyname not in ['1', '2', '3', 'x']:
             key_handler = self.controls[keyname]
             if isinstance(key_handler, str):
                 getattr(self.drone, key_handler)(0)
@@ -446,8 +447,6 @@ class TelloCV(object):
         
     def toggle_rl_training(self, speed):
         """ Handle reinforcement learning training keypress """
-        if speed == 0:  # handle key up event
-            return
         self.rl_training = not self.rl_training
         self.avoidance = self.rl_training
         self.tracking = False
@@ -461,6 +460,10 @@ class TelloCV(object):
         if self.episode_start:
             if self.track_cmd is not "":
                 getattr(self.drone, self.track_cmd)(0)
+                getattr(self.drone, "backward")(self.speed)  # Avoid crash
+                self.track_cmd = "backward"
+                time.sleep(0.5)
+                getattr(self.drone, "backward")(0)
                 self.track_cmd = ""
             self.speed = 0
             self.train_rl_sem.acquire()
@@ -472,11 +475,15 @@ class TelloCV(object):
                 self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), 0, self.current_state, 1)
                 print("Episode completed, good Tommy!")
             print("Episode ", self.episode_cont, " reward: ", self.reward)
-            self.rl_agent.update_model(self.ca_agent.model, self.episode_cont)
+            
+            self.training_thread = threading.Thread(target=self.rl_agent.update_model, args=(self.ca_agent.model, self.episode_cont))
+            self.training_thread.start()
             self.rl_agent.save_model(self.ca_agent.model, self.episode_cont)
             self.train_rl_sem.release()
             self.episode_start = False
         else:
+            if self.training_thread is not None:
+                self.training_thread.join()
             print("Episode Start")
             self.episode_start = True
             self.speed = 30
