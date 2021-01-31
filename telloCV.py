@@ -22,6 +22,7 @@ Controls:
  - 1 to toggle collision avoidance
  - 2 to toggle tracking
  - 3 to toggle reinforcement learning training for collision avoidance (If activated then also collision avoidance will be ON)
+ - 4 to toggle go back to starting point
  - x to end/start episode of RL
  - F to save frame as free (collision avoidance)
  - B to save frame as blocked (collision avoidance) 
@@ -39,6 +40,7 @@ from Face_Recognition.face_rec_tracker import Tracker
 from Collision_Avoidance.collision_avoidance import Agent
 from Collision_Avoidance.RL import RL_Agent
 from Camera_Calibration.process_image import FrameProc
+from Localization.pose_estimation import Pose
 from scipy.interpolate import interp1d
 import sys
 import traceback
@@ -113,6 +115,7 @@ class TelloCV(object):
         self.current_state = None
         self.train_rl_sem = threading.Semaphore(1)
         self.episode_start = True
+        self.eps_pose = 1e-5
         self.save_frame = False
         self.blocked_free = 0
         self.distance = 70
@@ -122,6 +125,7 @@ class TelloCV(object):
         self.ca_agent = Agent()
         self.rl_agent = RL_Agent(self.ca_agent.model, self.ca_agent.device)
         self.tracker = Tracker()
+        self.pose_estimator = Pose()
         self.drone = tellopy.Tello()
         self.init_drone()
         self.init_controls()
@@ -165,6 +169,18 @@ class TelloCV(object):
                     else:
                         key_handler(self.speed)
                 else:
+                    if keyname == 'w':
+                        self.pose_estimator.move(speed=self.speed_hand)
+                    elif keyname == 's':
+                        self.pose_estimator.move(speed=-self.speed_hand)
+                    elif keyname == 'Key.left':
+                        self.pose_estimator.move(yaw=-self.speed_hand)
+                    elif keyname == 'Key.right':
+                        self.pose_estimator.move(yaw=self.speed_hand)
+                    elif keyname == 'Key.down':
+                        self.pose_estimator.move(speed=-self.speed_hand, vertical=True)	
+                    elif keyname == 'Key.up':
+                        self.pose_estimator.move(speed=self.speed_hand, vertical=True)
                     if isinstance(key_handler, str):
                         getattr(self.drone, key_handler)(self.speed_hand)
                     else:
@@ -214,6 +230,7 @@ class TelloCV(object):
             '1': lambda speed: self.toggle_collisionAvoidance(speed),
             '2': lambda speed: self.toggle_tracking(speed),
             '3': lambda speed: self.toggle_rl_training(speed),
+            '4': lambda speed: self.toggle_go_back(speed)
             # Reinforcement learning commands
             'x': lambda speed: self.toggle_episode_done(True),
         }
@@ -443,6 +460,26 @@ class TelloCV(object):
         self.avoidance = not self.avoidance
         self.tracking = False
         print("avoidance:", self.avoidance)
+        
+    def toggle_go_back(self, speed):
+        """ Handle go back to origin keypress """
+        return_path = self.pose_estimator.go_back_same_path()
+        for movement in path:
+            p.move(speed=movement[0], yaw=movement[1], vertical = True if movement[2] != 0 else False)
+            if movement[1] > self.eps_pose:
+                cmd = "clockwise"
+            elif movement[1] < -self.eps_pose:
+                cmd = "counter_clockwise"
+            elif movement[0] < -self.eps_pose and not movement[2]:
+                cmd = "backward"
+            elif movement[0] > self.eps_pose and not movement[2]:
+                cmd = "forward"
+            elif movement[0] > self.eps_pose and movement[2]:
+                cmd = "up"
+            elif movement[0] < -self.eps_pose and movement[2]:
+                cmd = "down"
+            getattr(self.drone, cmd)(np.abs(movement[0]))
+            self.track_cmd = cmd
         
     def toggle_rl_training(self, speed):
         """ Handle reinforcement learning training keypress """

@@ -13,9 +13,10 @@ Implements frontal collision avoidance with NN, look at corresponding paragraph.
 3. [Collision Avoidance](#ca)
     1. [Reinforcement Learning](#rl)
 4. [Face Recognition](#fr)
-5. [Camera Calibration](#cc)
-6. [Files Description](#f)
-7. [References](#ref)
+5. [Go Back to Origin](#loc)
+6. [Camera Calibration](#cc)
+7. [Files Description](#f)
+8. [References](#ref)
 
 ## Installation <a name="installation"></a>
 Install anaconda and opencv and then:
@@ -67,6 +68,7 @@ For features:
 - '1': To toggle collision avoidance
 - '2': To toggle face recognition
 - '3': To toggle reinforcement learning training
+- '4': To toggle go back to origin
 - 'x': To end/start episode of RL
 - 'f': To take a picture and label it as 'free'
 - 'b': To take a picture and label it as 'blocked'
@@ -113,7 +115,7 @@ Every time an episode ends the drone stops, giving you the time to move it to an
 
 Reward: +1/max_steps_per_episode if agent decides to go forward, 0 if it turns, -1 for collisions.
 
-Do not attempt to train a full model with this method because it requires a lot of time and it would seem nearly impossible, first get a collision avoidance model trained with 'train_model.pynb' as satisfactory as possible and then proceed with this.
+Do not attempt to train a model from scratch with this method because it requires a lot of time and it would seem nearly impossible, first get a collision avoidance model trained with 'train_model.pynb' as satisfactory as possible and then proceed with this.
 
 The model trained by RL is saved into the folder 'Collision_Avoidance/rl_saved_models'.
 
@@ -137,6 +139,16 @@ Instructions on how to organize the images are available in the script.
 By changing the two parameters at the beginning of the python script 'Face_Recognition/face_rec_tracker.py' one can choose which person the tello should track and the ratio between recall and speed, for face detection and recognition.
 
 IMPORTANT: At the moment only one between face recognition and collision avoidance can be active.
+
+## Go Back to Origin <a name="loc"></a>
+From repository's root folder:
+```
+conda activate <env>
+python3 telloCV.py
+```
+Always on, in order to go back to origin press '4'.
+
+At the moment a lot of hypotesis are made in order to simplify the setting, but in future will be removed one at a time.
 
 ## Camera Calibration <a name="cc"></a>
 Save 15-20 images of a chessboard, made with the camera of tello, in the folder 'Camera_Calibration/chessboards' and call them n.jpg, (n=0, 1, ...).
@@ -167,6 +179,8 @@ Camera_Calibration/process_image.py: Provides a class which computes undistorted
 Collision_Avoidance/model.py: NN model.
 
 Collision_Avoidance/RL.py: Reinforcement learning script, change parameters in the 'init' method to change saving/training frequencies and other RL parameters.
+
+Localization/pose_estimation.py: Provides a class that keeps track of ideal position with respect to starting point, at the moment a lot of hypotesis are used.
 
 ## References <a name="ref"></a>
 
