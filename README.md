@@ -3,9 +3,7 @@ Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and uses [Te
 
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
-Identifies a known face in the image, infers its smallest enclosing rectangle and keeps the face at the center of the image.
-
-Implements frontal collision avoidance with NN, look at corresponding paragraph.
+The initial idea was to code a face recognition and tracker, then a lot of ideas have arrived and still are coming, so this repository will continue to grow, with the goal of providing a package of AI algorithms for Tello drones.
 
 # Table of contents
 1. [Installation](#installation)

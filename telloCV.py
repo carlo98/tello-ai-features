@@ -44,6 +44,12 @@ import traceback
 import threading
 
 
+MAX_SPEED_AUTONOMOUS=30
+SPEED_HAND = 60
+DISTANCE_FAC_REC = 70
+AREA_MIN = 4000
+AREA_MAX = 8000
+
 def main():
     """ Create a tello controller and show the video feed."""
     tellotrack = TelloCV()
@@ -95,8 +101,8 @@ class TelloCV(object):
         self.tracking = False
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
-        self.speed = 30
-        self.speed_hand = 60
+        self.speed = MAX_SPEED_AUTONOMOUS
+        self.speed_hand = SPEED_HAND
         if os.path.isdir('Collision_Avoidance/data'):
             if not os.path.isdir('Collision_Avoidance/data/blocked') or not os.path.isdir('Collision_Avoidance/data/free'):
                 print("Either 'blocked' folder or 'free' folder or both don't exist, any attempt to save images for NN training will fail!")
@@ -109,14 +115,15 @@ class TelloCV(object):
         self.current_step = 0
         self.old_state = None
         self.current_state = None
+        self.training_thread = None
         self.train_rl_sem = threading.Semaphore(1)
         self.episode_start = True
         self.eps_pose = 1e-5
         self.save_frame = False
         self.blocked_free = 0
-        self.distance = 70
-        self.area_min = 4000
-        self.area_max = 8000
+        self.distance = DISTANCE_FAC_REC
+        self.area_min = AREA_MIN
+        self.area_max = AREA_MAX
         self.track_cmd = ""
         self.ca_agent = Agent()
         self.rl_agent = RL_Agent(self.ca_agent.model, self.ca_agent.device)
@@ -138,7 +145,7 @@ class TelloCV(object):
 
     def init_drone(self):
         """Connect, uneable streaming and subscribe to events"""
-        # self.drone.log.set_level(2)
+        self.drone.log.set_level(0)
         self.drone.connect()
         self.drone.streamon()
 
@@ -167,7 +174,7 @@ class TelloCV(object):
                     elif keyname == 'Key.right':
                         self.pose_estimator.move(yaw=self.speed_hand)
                     elif keyname == 'Key.down':
-                        self.pose_estimator.move(speed=-self.speed_hand, vertical=True)	
+                        self.pose_estimator.move(speed=-self.speed_hand, vertical=True)
                     elif keyname == 'Key.up':
                         self.pose_estimator.move(speed=self.speed_hand, vertical=True)
                     key_handler(self.speed_hand)
@@ -179,7 +186,7 @@ class TelloCV(object):
         self.keydown = False
         keyname = str(keyname).strip('\'')
         print('-' + keyname)
-        if keyname in self.controls and keyname != 'x':
+        if keyname in self.controls and keyname not in ['1', '2', '3', 'x']:
             key_handler = self.controls[keyname]
             key_handler(0)
 
@@ -450,11 +457,9 @@ class TelloCV(object):
                 cmd = "down"
                 self.drone.send_rc_control(0, 0, movement[0], 0)
             self.track_cmd = cmd
-        
+
     def toggle_rl_training(self, speed):
         """ Handle reinforcement learning training keypress """
-        if speed == 0:  # handle key up event
-            return
         self.rl_training = not self.rl_training
         self.avoidance = self.rl_training
         self.tracking = False
@@ -467,7 +472,11 @@ class TelloCV(object):
         """
         if self.episode_start:
             if self.track_cmd is not "":
-                self.drone.send_rc_control(0, 0, movement[0], 0)
+                getattr(self.drone, self.track_cmd)(0)
+                getattr(self.drone, "backward")(self.speed)  # Avoid crash
+                self.track_cmd = "backward"
+                time.sleep(0.5)
+                getattr(self.drone, "backward")(0)
                 self.track_cmd = ""
             self.speed = 0
             self.train_rl_sem.acquire()
@@ -479,14 +488,18 @@ class TelloCV(object):
                 self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), 0, self.current_state, 1)
                 print("Episode completed, good Tommy!")
             print("Episode ", self.episode_cont, " reward: ", self.reward)
-            self.rl_agent.update_model(self.ca_agent.model, self.episode_cont)
+
+            self.training_thread = threading.Thread(target=self.rl_agent.update_model, args=(self.ca_agent.model, self.episode_cont))
+            self.training_thread.start()
             self.rl_agent.save_model(self.ca_agent.model, self.episode_cont)
             self.train_rl_sem.release()
             self.episode_start = False
         else:
+            if self.training_thread is not None:
+                self.training_thread.join()
             print("Episode Start")
             self.episode_start = True
-            self.speed = 30
+            self.speed = MAX_SPEED_AUTONOMOUS
             self.episode_cont += 1
             self.reward = 0
             self.current_step = 0
