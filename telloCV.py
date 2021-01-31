@@ -45,6 +45,12 @@ import traceback
 import threading
 
 
+MAX_SPEED_AUTONOMOUS=30
+SPEED_HAND = 60
+DISTANCE_FAC_REC = 70
+AREA_MIN = 4000
+AREA_MAX = 8000
+
 def main():
     """ Create a tello controller and show the video feed."""
     tellotrack = TelloCV()
@@ -97,8 +103,8 @@ class TelloCV(object):
         self.tracking = False
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
-        self.speed = 30
-        self.speed_hand = 60
+        self.speed = MAX_SPEED_AUTONOMOUS
+        self.speed_hand = SPEED_HAND
         if os.path.isdir('Collision_Avoidance/data'):
             if not os.path.isdir('Collision_Avoidance/data/blocked') or not os.path.isdir('Collision_Avoidance/data/free'):
                 print("Either 'blocked' folder or 'free' folder or both don't exist, any attempt to save images for NN training will fail!")
@@ -116,9 +122,9 @@ class TelloCV(object):
         self.episode_start = True
         self.save_frame = False
         self.blocked_free = 0
-        self.distance = 70
-        self.area_min = 4000
-        self.area_max = 8000
+        self.distance = DISTANCE_FAC_REC
+        self.area_min = AREA_MIN
+        self.area_max = AREA_MAX
         self.track_cmd = ""
         self.ca_agent = Agent()
         self.rl_agent = RL_Agent(self.ca_agent.model, self.ca_agent.device)
@@ -486,7 +492,7 @@ class TelloCV(object):
                 self.training_thread.join()
             print("Episode Start")
             self.episode_start = True
-            self.speed = 30
+            self.speed = MAX_SPEED_AUTONOMOUS
             self.episode_cont += 1
             self.reward = 0
             self.current_step = 0

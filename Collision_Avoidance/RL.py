@@ -21,11 +21,11 @@ class RL_Agent:
             sys.exit()
         self.save_dir = "Collision_Avoidance/rl_saved_models/"
         self.save_freq = 5  # In episodes
-        self.update_target_freq = 4  # In episodes
+        self.update_target_freq = 4  # In episodes, should be a multiple of train_freq
         self.batch_size = 16
-        self.num_epochs = 3
+        self.num_epochs = 2
         self.action_size = 2
-        self.train_freq = 1  # In episodes
+        self.train_freq = 2  # In episodes
         self.memory = deque(maxlen=1000000)
         if os.path.isfile(self.save_dir + "memory.bin"):
             with open(self.save_dir + "memory.bin", "rb") as f:
@@ -39,7 +39,7 @@ class RL_Agent:
         self.target_model = self.target_model.to(device)
         self.target_model.eval()
         
-        self.optimizer = optim.RMSprop(model.parameters(), lr=1e-4)
+        self.optimizer = optim.RMSprop(model.parameters(), lr=1e-6)
         
     def getQvalue(self, reward, next_target, done):
         if done:
@@ -62,6 +62,8 @@ class RL_Agent:
     
         for j in range(self.num_epochs):
             mini_batch = random.sample(self.memory, self.batch_size)
+            
+            mean_loss = 0.0
 
             for i in range(self.batch_size):
                 states = mini_batch[i][0]
@@ -94,7 +96,9 @@ class RL_Agent:
 
                 self.optimizer.step()
                 
-            print("Epoch ", j, " last loss: ", loss.item())
+                mean_loss += loss.item()
+                
+            print("Epoch ", j, " mean loss: ", mean_loss / self.batch_size)
         
         print("Training Ended")
             
