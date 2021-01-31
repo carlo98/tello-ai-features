@@ -15,7 +15,7 @@ class RL_Agent:
 
     def __init__(self, model, device):
         self.discount_factor = 0.8
-        self.max_steps = 100
+        self.max_steps = 500
         if not os.path.isdir("Collision_Avoidance/rl_saved_models/"):
             print("Please first create the folder 'Collision_Avoidance/rl_saved_models/' with 'mkdir Collision_Avoidance/rl_saved_models/'.")
             sys.exit()

@@ -1,5 +1,5 @@
 # Tello AI Features
-Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and uses [TelloPy](https://github.com/hanyazou/TelloPy).
+Autonomous tracker for Tello drones. It works on python 3.7 and 3.6 and uses [DJITelloPy](https://github.com/damiafuentes/DJITelloPy).
 
 The starting point is [Ubotica telloCV](https://github.com/Ubotica/telloCV), Nov 6 2018.
 
@@ -25,15 +25,12 @@ conda install pip
 pip install numpy av pynput face-recognition sklearn torch jupyter
 ```
 
-TelloPy:
+djitellopy:
 ```
-git clone https://github.com/hanyazou/TelloPy
-cd TelloPy
-python setup.py bdist_wheel
-pip install dist/tellopy-*.dev*.whl --upgrade
+pip install https://github.com/damiafuentes/DJITelloPy/archive/master.zip
 ```
 
-For collision avoidance
+For collision avoidance, in repository's root folder do:
 ```
 mkdir Collision_Avoidance/saved_models
 mkdir Collision_Avoidance/data
@@ -44,17 +41,17 @@ mkdir Collision_Avoidance/saliency/blocked
 mkdir Collision_Avoidance/saliency/free
 ```
 
-For RL training:
+For RL training, in repository's root folder do:
 ```
 mkdir Collision_Avoidance/rl_saved_models
 ```
 
-For face recognition:
+For face recognition, in repository's root folder do:
 ```
 mkdir Face_Recognition/train_dir
 ```
 
-For camera calibration
+For camera calibration, in repository's root folder do:
 ```
 mkdir Camera_Calibration/chessboards
 ```
@@ -147,6 +144,8 @@ python3 telloCV.py
 Always on, in order to go back to origin press '4'.
 
 At the moment a lot of hypotesis are made in order to simplify the setting, but in future will be removed one at a time.
+
+For now it works only with manual controls.
 
 ## Camera Calibration <a name="cc"></a>
 Save 15-20 images of a chessboard, made with the camera of tello, in the folder 'Camera_Calibration/chessboards' and call them n.jpg, (n=0, 1, ...).
