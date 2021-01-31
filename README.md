@@ -27,7 +27,7 @@ pip install numpy av pynput face-recognition sklearn torch jupyter
 
 djitellopy:
 ```
-pip install https://github.com/damiafuentes/DJITelloPy/archive/master.zip
+pip install djitellopy2
 ```
 
 For collision avoidance, in repository's root folder do:

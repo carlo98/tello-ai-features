@@ -64,6 +64,8 @@ def main():
         traceback.print_exception(exc_type, exc_value, exc_traceback)
         print(ex)
     finally:
+        tellotrack.stop_threads = True
+        tellotrack.thread_dist.join()
         cv2.destroyAllWindows()
 
 
@@ -74,8 +76,7 @@ def show(frame):
 
     # if the 'q' key is pressed, stop the loop
     if key == ord("q"):
-        exit()
-
+        exit()    
 
 class TelloCV(object):
     """
@@ -106,11 +107,14 @@ class TelloCV(object):
         self.training_thread = None
         self.train_rl_sem = threading.Semaphore(1)
         self.episode_start = True
-        self.eps_pose = 10
+        self.eps_pose = 20
         self.save_frame = False
         self.blocked_free = 0
         self.go_back = False
-        self.start_time_command = 0
+        self.stop_threads = False
+        self.direction = 'y'
+        self.dist = 0
+        self.new_dist = False
         self.distance = DISTANCE_FAC_REC
         self.area_min = AREA_MIN
         self.area_max = AREA_MAX
@@ -122,6 +126,8 @@ class TelloCV(object):
         self.drone = Tello()
         self.init_drone()
         self.init_controls()
+        self.thread_dist = threading.Thread(target=self.compute_dist)
+        self.thread_dist.start()
 
         # Processing frames
         self.video_initialized = False
@@ -148,9 +154,23 @@ class TelloCV(object):
                 if keyname in ['1', '2', '3', '4', 'x']:
                         key_handler(self.speed)
                 else:
-                    key_handler(self.speed_hand)
                     if keyname in ['w', 'a', 's', 'd', 'Key.left', 'Key.right', 'Key.up', 'Key.down']:
-                        self.start_time_command = time.time()  # Get start time of new command
+                        self.new_dist = True
+                        if keyname == 'w':
+                            self.direction = "x"
+                        elif keyname == 's':
+                            self.direction = "x"
+                        elif keyname == 'Key.left':
+                            self.direction = "y"
+                        elif keyname == 'Key.right':
+                            self.direction = "y"
+                        elif keyname == 'Key.up':
+                            self.direction = "z"
+                        elif keyname == 'Key.down':
+                            self.direction = "z"
+                        else:
+                            self.direction = 'y'
+                    key_handler(self.speed_hand)
         except AttributeError:
             print('special key {0} pressed'.format(keyname))
 
@@ -162,17 +182,17 @@ class TelloCV(object):
         if keyname in self.controls and keyname in ['w', 'a', 's', 'd', 'Key.left', 'Key.right', 'Key.up', 'Key.down']:
             key_handler = self.controls[keyname]
             key_handler(0)
-            time_laps = (time.time()-self.start_time_command)
-            if self.track_cmd == 'forward' or self.track_cmd == 'backward':
-                curr_vel = self.drone.get_speed_x()
-                curr_acc = self.drone.get_acceleration_x()
-                self.pose_estimator.move(dist= curr_vel*time_laps + 0.5*curr_acc*(time_laps**2))
-            elif self.track_cmd == 'Key.left' or self.track_cmd == 'Key.right':
+            if self.direction == 'x':
+                self.new_dist = False
+                self.pose_estimator.move(dist=self.dist)
+                self.dist = 0
+            elif self.direction == 'y':
                 self.pose_estimator.move(yaw=self.drone.get_yaw())
-            elif self.track_cmd == 'Key.down' or self.track_cmd == 'Key.up':
-                curr_vel = self.drone.get_speed_z()
-                curr_acc = self.drone.get_acceleration_z()
-                self.pose_estimator.move(dist=-curr_vel*time_laps + 0.5*curr_acc*(time_laps**2), vertical=True)
+            elif self.direction == 'z':
+                self.new_dist = False
+                self.pose_estimator.move(dist=self.dist, vertical=True)
+                self.dist = 0
+            self.track_cmd = ""
 
     def init_controls(self):
         """Define keys and add listener"""
@@ -346,6 +366,22 @@ class TelloCV(object):
                         1.0, (255, 0, 0), lineType=30)
         return frame
         
+    def compute_dist(self):
+        while not self.stop_threads:
+            if not self.new_dist or self.direction == 'y':
+                continue
+            start_time = time.time()
+            if self.direction == 'z':
+                curr_vel = self.drone.get_speed_z()
+                curr_acc = self.drone.get_acceleration_z()
+            elif self.direction == 'x':
+                curr_vel = self.drone.get_speed_x()
+                curr_acc = self.drone.get_acceleration_x()
+            print(curr_vel, curr_acc, self.dist)
+            time_laps = time.time()-start_time
+            #self.dist += curr_vel*time_laps + 0.5*(curr_acc * 9.81 * 1000)*(time_laps**2)
+            self.dist += (curr_acc * 9.81 * 1000)*(time_laps**2) + 0.5*(curr_acc * 9.81 * 1000)*(time_laps**2)
+        
     def toggle_blocked_free(self, block_free):
         self.save_frame = True
         self.blocked_free = block_free
@@ -383,16 +419,16 @@ class TelloCV(object):
                 self.drone.rotate_counter_clockwise(int(movement[1]))
             elif movement[0] < -self.eps_pose and not movement[2]:
                 cmd = "backward"
-                self.drone.move_back(int(movement[0]))
+                self.drone.move_back(int(np.abs(movement[0])))
             elif movement[0] > self.eps_pose and not movement[2]:
                 cmd = "forward"
-                self.drone.move_forward(int(movement[0]))
+                self.drone.move_forward(int((np.abs(movement[0]))))
             elif movement[0] > self.eps_pose and movement[2]:
                 cmd = "up"
-                self.drone.move_up(int(movement[0]))
+                self.drone.move_up(int(np.abs(movement[0])))
             elif movement[0] < -self.eps_pose and movement[2]:
                 cmd = "down"
-                self.drone.move_down(int(movement[0]))
+                self.drone.move_down(int(np.abs(movement[0])))
             self.track_cmd = cmd
 
     def toggle_rl_training(self, speed):
