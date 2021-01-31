@@ -7,10 +7,7 @@ Requires mplayer to record/save video.
 Controls:
 - tab to lift off
 - WASD to move the drone
-- space/shift to ascend/descent slowly
 - arrow keys to ascend, descend, or yaw quickly
-- backspace to land, or P to palm-land
-- enter to take a picture
 - R to start recording video, R again to stop recording
   (video and photos will be saved to a timestamped file in ~/Pictures/)
 - Z to toggle camera zoom state
@@ -31,7 +28,7 @@ import time
 import datetime
 import os
 import copy
-import tellopy
+from djitellopy.tello import Tello
 import numpy as np
 import av
 import cv2
@@ -73,7 +70,6 @@ def main():
         traceback.print_exception(exc_type, exc_value, exc_traceback)
         print(ex)
     finally:
-        tellotrack.drone.quit()
         cv2.destroyAllWindows()
 
 
@@ -126,12 +122,12 @@ class TelloCV(object):
         self.rl_agent = RL_Agent(self.ca_agent.model, self.ca_agent.device)
         self.tracker = Tracker()
         self.pose_estimator = Pose()
-        self.drone = tellopy.Tello()
+        self.drone = Tello()
         self.init_drone()
         self.init_controls()
 
         # container for processing the packets into frames
-        self.container = av.open(self.drone.get_video_stream())
+        self.container = av.open(self.drone.get_video_capture())
         self.vid_stream = self.container.streams.video[0]
         self.out_file = None
         self.out_stream = None
@@ -144,11 +140,7 @@ class TelloCV(object):
         """Connect, uneable streaming and subscribe to events"""
         # self.drone.log.set_level(2)
         self.drone.connect()
-        self.drone.start_video()
-        self.drone.subscribe(self.drone.EVENT_FLIGHT_DATA,
-                             self.flight_data_handler)
-        self.drone.subscribe(self.drone.EVENT_FILE_RECEIVED,
-                             self.handle_flight_received)
+        self.drone.streamon()
 
     def on_press(self, keyname):
         """handler for keyboard listener"""
@@ -159,14 +151,11 @@ class TelloCV(object):
             keyname = str(keyname).strip('\'')
             print('+' + keyname)
             if keyname == 'Key.esc':
-                self.drone.quit()
+                self.drone.land()
                 exit(0)
             if keyname in self.controls:
                 key_handler = self.controls[keyname]
                 if keyname in ['1', '2', '3', 'x']:
-                    if isinstance(key_handler, str):
-                        getattr(self.drone, key_handler)(self.speed)
-                    else:
                         key_handler(self.speed)
                 else:
                     if keyname == 'w':
@@ -181,10 +170,7 @@ class TelloCV(object):
                         self.pose_estimator.move(speed=-self.speed_hand, vertical=True)	
                     elif keyname == 'Key.up':
                         self.pose_estimator.move(speed=self.speed_hand, vertical=True)
-                    if isinstance(key_handler, str):
-                        getattr(self.drone, key_handler)(self.speed_hand)
-                    else:
-                        key_handler(self.speed_hand)
+                    key_handler(self.speed_hand)
         except AttributeError:
             print('special key {0} pressed'.format(keyname))
 
@@ -195,36 +181,28 @@ class TelloCV(object):
         print('-' + keyname)
         if keyname in self.controls and keyname != 'x':
             key_handler = self.controls[keyname]
-            if isinstance(key_handler, str):
-                getattr(self.drone, key_handler)(0)
-            else:
-                key_handler(0)
+            key_handler(0)
 
     def init_controls(self):
         """Define keys and add listener"""
         self.controls = {
-            'w': 'forward',
-            's': 'backward',
-            'a': 'left',
-            'd': 'right',
-            'Key.space': 'up',
-            'Key.shift': 'down',
-            'Key.shift_r': 'down',
+            'w': lambda speed: self.drone.send_rc_control(0, speed, 0, 0),
+            's': lambda speed: self.drone.send_rc_control(0, -speed, 0, 0),
+            'a': lambda speed: self.drone.send_rc_control(-speed, 0, 0, 0),
+            'd': lambda speed: self.drone.send_rc_control(speed, 0, 0, 0),
             'i': lambda speed: self.drone.flip_forward(),
             'k': lambda speed: self.drone.flip_back(),
             'j': lambda speed: self.drone.flip_left(),
             'l': lambda speed: self.drone.flip_right(),
             # arrow keys for fast turns and altitude adjustments
-            'Key.left': lambda speed: self.drone.counter_clockwise(speed),
-            'Key.right': lambda speed: self.drone.clockwise(speed),
-            'Key.up': lambda speed: self.drone.up(speed),
-            'Key.down': lambda speed: self.drone.down(speed),
+            'Key.left': lambda speed: self.drone.send_rc_control(0, 0, 0, speed),
+            'Key.right': lambda speed: self.drone.send_rc_control(0, 0, 0, -speed),
+            'Key.up': lambda speed: self.drone.send_rc_control(0, 0, speed, 0),
+            'Key.down': lambda speed: self.drone.send_rc_control(0, 0, -speed, 0),
             'Key.tab': lambda speed: self.drone.takeoff(),
             'Key.backspace': lambda speed: self.drone.land(),
-            'p': lambda speed: self.palm_land(speed),
             'r': lambda speed: self.toggle_recording(speed),
             'z': lambda speed: self.toggle_zoom(speed),
-            'Key.enter': lambda speed: self.take_picture(speed),
             'b': lambda speed: self.toggle_blocked_free(0),
             'f': lambda speed: self.toggle_blocked_free(1),
             '1': lambda speed: self.toggle_collisionAvoidance(speed),
@@ -293,17 +271,11 @@ class TelloCV(object):
         if self.avoidance:
             cmd_ca_agent, display_frame = self.ca_agent.track(x)
             if cmd_ca_agent == 1:
-                cmd = "clockwise"
-                if self.track_cmd is not "" and self.track_cmd is not "clockwise":
-                    getattr(self.drone, self.track_cmd)(0)
-                getattr(self.drone, cmd)(self.speed)
-                self.track_cmd = cmd
+                self.drone.send_rc_control(0, 0, 0, self.speed)
+                self.track_cmd = "clockwise"
             else:
-                if self.track_cmd is not "" and self.track_cmd is not "forward":
-                    getattr(self.drone, self.track_cmd)(0)
-                cmd = "forward"
-                getattr(self.drone, cmd)(self.speed)
-                self.track_cmd = cmd
+                self.drone.send_rc_control(0, self.speed, 0, 0)
+                self.track_cmd = "forward"
                 
             ## Start Reinforcement Learning code
             if self.rl_training and self.episode_start:
@@ -332,25 +304,31 @@ class TelloCV(object):
             xoff, yoff, distance_measure = self.interpolate_readings(copy.deepcopy(readings))
             if xoff == -1:
                 if self.track_cmd is not "":
-                    getattr(self.drone, self.track_cmd)(0)
+                    self.drone.send_rc_control(0, 0, 0, 0)
                     self.track_cmd = ""
             elif xoff < -self.distance:
                 cmd = "counter_clockwise"
+                self.drone.send_rc_control(0, 0, 0, -self.speed)
             elif xoff > self.distance:
                 cmd = "clockwise"
+                self.drone.send_rc_control(0, 0, 0, self.speed)
             elif yoff < -self.distance:
                 cmd = "down"
+                self.drone.send_rc_control(0, 0, -self.speed, 0)
             elif yoff > self.distance:
                 cmd = "up"
+                self.drone.send_rc_control(0, 0, self.speed, 0)
             elif distance_measure <= self.area_min:
                 print("Forward ", distance_measure)
                 cmd = "forward"
+                self.drone.send_rc_control(0, self.speed, 0, 0)
             elif distance_measure >= self.area_max:
                 print("backward ", distance_measure)
                 cmd = "backward"
+                self.drone.send_rc_control(0, -self.speed, 0, 0)
             else:
                 if self.track_cmd is not "":
-                    getattr(self.drone, self.track_cmd)(0)
+                    self.drone.send_rc_control(0, 0, 0, 0)
                     self.track_cmd = ""
             
             image = display_frame
@@ -359,7 +337,6 @@ class TelloCV(object):
         if cmd is not self.track_cmd:
             if cmd is not "":
                 print("track command:", cmd)
-                getattr(self.drone, cmd)(self.speed)
                 self.track_cmd = cmd
 
         return image
@@ -432,18 +409,6 @@ class TelloCV(object):
             except IOError:
                 print('mux failed: ' + str(pkt))
 
-    def take_picture(self, speed):
-        """Tell drone to take picture, image sent to file handler"""
-        if speed == 0:
-            return
-        self.drone.take_picture()
-
-    def palm_land(self, speed):
-        """Tell drone to land"""
-        if speed == 0:
-            return
-        self.drone.palm_land()
-
     def toggle_tracking(self, speed):
         """ Handle tracking keypress"""
         if speed == 0:  # handle key up event
@@ -468,17 +433,22 @@ class TelloCV(object):
             p.move(speed=movement[0], yaw=movement[1], vertical = True if movement[2] != 0 else False)
             if movement[1] > self.eps_pose:
                 cmd = "clockwise"
+                self.drone.send_rc_control(0, 0, 0, movement[1])
             elif movement[1] < -self.eps_pose:
                 cmd = "counter_clockwise"
+                self.drone.send_rc_control(0, 0, 0, movement[1])
             elif movement[0] < -self.eps_pose and not movement[2]:
                 cmd = "backward"
+                self.drone.send_rc_control(0, movement[0], 0, 0)
             elif movement[0] > self.eps_pose and not movement[2]:
                 cmd = "forward"
+                self.drone.send_rc_control(0, movement[0], 0, 0)
             elif movement[0] > self.eps_pose and movement[2]:
                 cmd = "up"
+                self.drone.send_rc_control(0, 0, movement[0], 0)
             elif movement[0] < -self.eps_pose and movement[2]:
                 cmd = "down"
-            getattr(self.drone, cmd)(np.abs(movement[0]))
+                self.drone.send_rc_control(0, 0, movement[0], 0)
             self.track_cmd = cmd
         
     def toggle_rl_training(self, speed):
@@ -497,7 +467,7 @@ class TelloCV(object):
         """
         if self.episode_start:
             if self.track_cmd is not "":
-                getattr(self.drone, self.track_cmd)(0)
+                self.drone.send_rc_control(0, 0, movement[0], 0)
                 self.track_cmd = ""
             self.speed = 0
             self.train_rl_sem.acquire()
