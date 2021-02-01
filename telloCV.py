@@ -42,7 +42,7 @@ import threading
 
 
 MAX_SPEED_AUTONOMOUS=30
-SPEED_HAND = 60
+SPEED_HAND = 40
 DISTANCE_FAC_REC = 70
 AREA_MIN = 4000
 AREA_MAX = 8000
@@ -65,7 +65,7 @@ def main():
         print(ex)
     finally:
         tellotrack.stop_threads = True
-        tellotrack.thread_dist.join()
+        tellotrack.thread_position.join()
         cv2.destroyAllWindows()
 
 
@@ -78,6 +78,7 @@ def show(frame):
     if key == ord("q"):
         exit()    
 
+
 class TelloCV(object):
     """
     TelloTracker builds keyboard controls on top of TelloPy as well
@@ -86,7 +87,6 @@ class TelloCV(object):
 
     def __init__(self):
         self.prev_flight_data = None
-        self.record = False
         self.tracking = False
         self.keydown = False
         self.date_fmt = '%Y-%m-%d_%H%M%S'
@@ -112,9 +112,9 @@ class TelloCV(object):
         self.blocked_free = 0
         self.go_back = False
         self.stop_threads = False
-        self.direction = 'y'
-        self.dist = 0
-        self.new_dist = False
+        self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.curr_vel = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.new_position = False
         self.distance = DISTANCE_FAC_REC
         self.area_min = AREA_MIN
         self.area_max = AREA_MAX
@@ -126,8 +126,8 @@ class TelloCV(object):
         self.drone = Tello()
         self.init_drone()
         self.init_controls()
-        self.thread_dist = threading.Thread(target=self.compute_dist)
-        self.thread_dist.start()
+        self.thread_position = threading.Thread(target=self.compute_position)
+        self.thread_position.start()
 
         # Processing frames
         self.video_initialized = False
@@ -155,21 +155,7 @@ class TelloCV(object):
                         key_handler(self.speed)
                 else:
                     if keyname in ['w', 'a', 's', 'd', 'Key.left', 'Key.right', 'Key.up', 'Key.down']:
-                        self.new_dist = True
-                        if keyname == 'w':
-                            self.direction = "x"
-                        elif keyname == 's':
-                            self.direction = "x"
-                        elif keyname == 'Key.left':
-                            self.direction = "y"
-                        elif keyname == 'Key.right':
-                            self.direction = "y"
-                        elif keyname == 'Key.up':
-                            self.direction = "z"
-                        elif keyname == 'Key.down':
-                            self.direction = "z"
-                        else:
-                            self.direction = 'y'
+                        self.new_position = True
                     key_handler(self.speed_hand)
         except AttributeError:
             print('special key {0} pressed'.format(keyname))
@@ -182,16 +168,12 @@ class TelloCV(object):
         if keyname in self.controls and keyname in ['w', 'a', 's', 'd', 'Key.left', 'Key.right', 'Key.up', 'Key.down']:
             key_handler = self.controls[keyname]
             key_handler(0)
-            if self.direction == 'x':
-                self.new_dist = False
-                self.pose_estimator.move(dist=self.dist)
-                self.dist = 0
-            elif self.direction == 'y':
-                self.pose_estimator.move(yaw=self.drone.get_yaw())
-            elif self.direction == 'z':
-                self.new_dist = False
-                self.pose_estimator.move(dist=self.dist, vertical=True)
-                self.dist = 0
+            self.new_position = False
+            tmp = list(self.position)
+            tmp.append(self.drone.get_yaw())
+            self.pose_estimator.move(np.array(tmp, dtype=np.float32))
+            self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+            self.curr_vel = np.array([0.0, 0.0, 0.0], dtype=np.float32)
             self.track_cmd = ""
 
     def init_controls(self):
@@ -261,8 +243,6 @@ class TelloCV(object):
          
         image = cv2.cvtColor(copy.deepcopy(x), cv2.COLOR_RGB2BGR)
         image = self.write_hud(image)
-        if self.record:
-            self.record_vid(frame)
 
         cmd = ""
         if self.save_frame:
@@ -366,22 +346,27 @@ class TelloCV(object):
                         1.0, (255, 0, 0), lineType=30)
         return frame
         
-    def compute_dist(self):
+    def compute_position(self):
         while not self.stop_threads:
-            if not self.new_dist or self.direction == 'y':
+            if not self.new_position:
                 continue
             start_time = time.time()
-            if self.direction == 'z':
-                curr_vel = self.drone.get_speed_z()
-                curr_acc = self.drone.get_acceleration_z()
-            elif self.direction == 'x':
-                curr_vel = self.drone.get_speed_x()
-                curr_acc = self.drone.get_acceleration_x()
-            print(curr_vel, curr_acc, self.dist)
+            roll = self.drone.get_roll()*np.pi/180
+            pitch = self.drone.get_pitch()*np.pi/180
+            yaw = self.drone.get_yaw()*np.pi/180
+            Rr = np.array([[1, 0, 0], [0, np.cos(roll), -np.sin(roll)], [0, np.sin(roll), np.cos(roll)]], dtype=np.float32)
+            Rp = np.array([[np.cos(pitch), 0, np.sin(pitch)], [0, 1, 0], [-np.sin(pitch), 0, np.cos(pitch)]], dtype=np.float32)
+            Ry = np.array([[np.cos(yaw), -np.sin(yaw), 0], [np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]], dtype=np.float32)
+            R = np.dot(np.dot(Rr, Rp), Ry)
+            R = R/np.cbrt(np.linalg.det(R))
+            curr_acc = np.array([self.drone.get_acceleration_y(), self.drone.get_acceleration_x(), self.drone.get_acceleration_z()], dtype=np.float32)*980.7
+            curr_acc[2] -= 980.7  # cm/s^2
+            global_acc = np.dot(R, curr_acc)
             time_laps = time.time()-start_time
-            #self.dist += curr_vel*time_laps + 0.5*(curr_acc * 9.81 * 1000)*(time_laps**2)
-            self.dist += (curr_acc * 9.81 * 1000)*(time_laps**2) + 0.5*(curr_acc * 9.81 * 1000)*(time_laps**2)
-        
+            self.position += self.curr_vel * time_laps + 0.5 * global_acc * (time_laps ** 2)
+            self.curr_vel += global_acc * time_laps
+            print(self.position, self.curr_vel, global_acc)
+            
     def toggle_blocked_free(self, block_free):
         self.save_frame = True
         self.blocked_free = block_free
@@ -410,7 +395,7 @@ class TelloCV(object):
         print(self.pose_estimator.get_current_pose())
         print(return_path)
         for movement in return_path:
-            self.pose_estimator.move(dist=movement[0], yaw=movement[1], vertical = True if movement[2] != 0 else False)
+            self.pose_estimator.move(movement)
             if movement[1] > self.eps_pose:
                 cmd = "clockwise"
                 self.drone.rotate_clockwise(int(movement[1]))
