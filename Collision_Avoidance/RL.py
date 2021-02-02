@@ -15,7 +15,7 @@ class RL_Agent:
 
     def __init__(self, model, device):
         self.discount_factor = 0.8
-        self.max_steps = 100
+        self.max_steps = 200
         if not os.path.isdir("Collision_Avoidance/rl_saved_models/"):
             print("Please first create the folder 'Collision_Avoidance/rl_saved_models/' with 'mkdir Collision_Avoidance/rl_saved_models/'.")
             sys.exit()
@@ -23,13 +23,14 @@ class RL_Agent:
         self.save_freq = 5  # In episodes
         self.update_target_freq = 4  # In episodes, should be a multiple of train_freq
         self.batch_size = 16
-        self.num_epochs = 2
         self.action_size = 2
         self.train_freq = 2  # In episodes
         self.memory = deque(maxlen=1000000)
+        flag = False
         if os.path.isfile(self.save_dir + "memory.bin"):
             with open(self.save_dir + "memory.bin", "rb") as f:
                 self.memory = pickle.load(f)
+                flag = True
             print("Found pre-existing memory, loaded")
         self.device = device
         self.state_size = None
@@ -40,6 +41,12 @@ class RL_Agent:
         self.target_model.eval()
         
         self.optimizer = optim.RMSprop(model.parameters(), lr=1e-6)
+        
+        if flag:
+            self.num_epochs = 10
+            self.update_model(model, 0)
+            self.num_epochs = 2
+            
         
     def getQvalue(self, reward, next_target, done):
         if done:
@@ -90,13 +97,13 @@ class RL_Agent:
                 
                 loss = F.smooth_l1_loss(torch.tensor(next_q_value, dtype=torch.float32).requires_grad_(), torch.max(q_value))
                 self.optimizer.zero_grad()
-                loss.backward()
+                loss.backward(retain_graph=True)
 
                 nn.utils.clip_grad_norm_(model.parameters(), 0.5)
-
-                self.optimizer.step()
                 
                 mean_loss += loss.item()
+                
+            self.optimizer.step()
                 
             print("Epoch ", j, " mean loss: ", mean_loss / self.batch_size)
         

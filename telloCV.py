@@ -281,19 +281,21 @@ class TelloCV(object):
             
         ## Start Collision Avoidance code
         if self.avoidance:
+            x = cv2.resize(x, (224, 224))
             cmd_ca_agent, display_frame = self.ca_agent.track(x)
-            if cmd_ca_agent == 1:
-                cmd = "clockwise"
-                if self.track_cmd is not "" and self.track_cmd is not "clockwise":
-                    getattr(self.drone, self.track_cmd)(0)
-                getattr(self.drone, cmd)(self.speed)
-                self.track_cmd = cmd
-            else:
-                if self.track_cmd is not "" and self.track_cmd is not "forward":
-                    getattr(self.drone, self.track_cmd)(0)
-                cmd = "forward"
-                getattr(self.drone, cmd)(self.speed)
-                self.track_cmd = cmd
+            if not self.rl_training or self.rl_training and self.episode_start:
+                if cmd_ca_agent == 1:
+                    cmd = "clockwise"
+                    if self.track_cmd is not "" and self.track_cmd is not "clockwise":
+                        getattr(self.drone, self.track_cmd)(0)
+                    getattr(self.drone, cmd)(self.speed)
+                    self.track_cmd = cmd
+                else:
+                    if self.track_cmd is not "" and self.track_cmd is not "forward":
+                        getattr(self.drone, self.track_cmd)(0)
+                    cmd = "forward"
+                    getattr(self.drone, cmd)(self.speed)
+                    self.track_cmd = cmd
                 
             ## Start Reinforcement Learning code
             if self.rl_training and self.episode_start:
