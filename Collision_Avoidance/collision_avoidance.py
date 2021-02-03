@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import torch.nn.functional as F
 import time
+import random
 from Collision_Avoidance.model import tommy_net
 from Collision_Avoidance.saliency_map import SaliencyDoG
 
@@ -92,6 +93,7 @@ class Agent:
         
         self.saliency_mapper = SaliencyDoG(pyramid_height=5, shift=5, ch_3=False,
                               low_pass_filter=True, multi_layer_map=False)
+        self.last_move = 1
         
     def preprocess(self, x):
         x = self.saliency_mapper.generate_saliency(x)
@@ -117,10 +119,14 @@ class Agent:
         prob_blocked = float(y.flatten()[0])
     
         if prob_blocked < 0.30:
+            self.last_move = 0
             return 0, x # forward
         else:
+            if self.last_move == 0:
+                self.last_move = random.randint(1, 2)  # Left or right at random if last move was going forward
+                return self.last_move, x
             #print("blocked")
-            return 1, x # turn
+            return self.last_move, x # If it was turning keeps turning in the same way
 
 if __name__ == '__main__':
     main()

@@ -1,22 +1,10 @@
 """
-tellotracker:
-Allows manual operation of the drone and demo tracking mode.
-
-Requires mplayer to record/save video.
-
-Controls:
-- tab to lift off
-- WASD to move the drone
-- arrow keys to ascend, descend, or yaw quickly
-  (zoomed-in widescreen or high FOV 4:3)
-@author Leonie Buckley, Saksham Sinha and Jonathan Byrne
-@copyright 2018 see license file for details
-
    IMPORTANT: Only one feature (1, 2) can be activate at any time.
  - 1 to toggle collision avoidance
  - 2 to toggle tracking
  - 3 to toggle reinforcement learning training for collision avoidance (If activated then also collision avoidance will be ON)
  - 4 to toggle go back to starting point
+ - 5 to toggle imitation learning
  - x to end/start episode of RL
  - F to save frame as free (collision avoidance)
  - B to save frame as blocked (collision avoidance) 
@@ -41,7 +29,7 @@ import traceback
 import threading
 
 
-MAX_SPEED_AUTONOMOUS=30
+MAX_SPEED_AUTONOMOUS=20
 SPEED_HAND = 40
 DISTANCE_FAC_REC = 70
 AREA_MIN = 4000
@@ -53,10 +41,12 @@ def main():
     
     try:
         frame = tellotrack.drone.get_frame_read().frame
-        tellotrack.frameproc = FrameProc(frame.shape[0], frame.shape[1])
-        tellotrack.tracker.init_video(frame.shape[0], frame.shape[1])
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        tellotrack.frameproc = FrameProc(frame.shape[1], frame.shape[0])
+        tellotrack.tracker.init_video(frame.shape[1], frame.shape[0])
         while True:
             frame = tellotrack.drone.get_frame_read().frame
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = tellotrack.process_frame(frame)
             show(image)
     except Exception as ex:
@@ -107,6 +97,7 @@ class TelloCV(object):
         self.training_thread = None
         self.train_rl_sem = threading.Semaphore(1)
         self.episode_start = True
+        self.imit_learning = False
         self.eps_pose = 20
         self.save_frame = False
         self.blocked_free = 0
@@ -200,6 +191,7 @@ class TelloCV(object):
             '2': lambda speed: self.toggle_tracking(speed),
             '3': lambda speed: self.toggle_rl_training(speed),
             '4': lambda speed: self.toggle_go_back(speed),
+            '5': lambda speed: self.toggle_imit_learning(speed),
             # Reinforcement learning commands
             'x': lambda speed: self.toggle_episode_done(True),
         }
@@ -240,7 +232,7 @@ class TelloCV(object):
         x = np.array(frame)
         # Get undistorted frame
         x = self.frameproc.undistort_frame(x)
-         
+        x = cv2.resize(x, (500, 500))
         image = cv2.cvtColor(copy.deepcopy(x), cv2.COLOR_RGB2BGR)
         image = self.write_hud(image)
 
@@ -287,7 +279,7 @@ class TelloCV(object):
         
         ## Start Tracking code
         elif self.tracking:
-            readings, display_frame = self.tracker.track(image)
+            readings, display_frame = self.tracker.track(x)
             xoff, yoff, distance_measure = self.interpolate_readings(copy.deepcopy(readings))
             if xoff == -1:
                 if self.track_cmd is not "":
@@ -318,8 +310,27 @@ class TelloCV(object):
                     self.drone.send_rc_control(0, 0, 0, 0)
                     self.track_cmd = ""
             
-            image = display_frame
+            image = cv2.cvtColor(display_frame, cv2.COLOR_RGB2BGR)
         ## End Tracking code
+        
+        ## Start imitation learning
+        if self.imit_learning:
+            _, display_frame = self.ca_agent.preprocess(x)
+            self.current_state = display_frame.get()
+            if self.current_state is not None and self.old_state is not None:
+                if self.track_cmd == "forward":  # Reward each forward movement
+                    new_reward = 1 / self.rl_agent.max_steps
+                    self.reward += new_reward
+                else:
+                   new_reward = 0
+                self.train_rl_sem.acquire()
+                self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), new_reward, self.current_state, 0)
+                self.train_rl_sem.release()
+                if self.current_step >= self.rl_agent.max_steps:
+                    self.toggle_episode_done(False)
+                self.current_step += 1
+            self.old_state = copy.deepcopy(self.current_state)
+        ## End imitation learning
         
         if cmd is not self.track_cmd:
             if cmd is not "":
@@ -365,7 +376,7 @@ class TelloCV(object):
             time_laps = time.time()-start_time
             self.position += self.curr_vel * time_laps + 0.5 * global_acc * (time_laps ** 2)
             self.curr_vel += global_acc * time_laps
-            print(self.position, self.curr_vel, global_acc)
+            #print(self.position, self.curr_vel, global_acc)
             
     def toggle_blocked_free(self, block_free):
         self.save_frame = True
@@ -424,9 +435,15 @@ class TelloCV(object):
         print("RL training:", self.rl_training)
         print("avoidance:", self.avoidance)
         
+    def toggle_imit_learning(self, speed):
+        """ Handle imitation learning keypress """
+        self.imit_learning = not self.imit_learning
+        self.tracking = False
+        print("Imitation learning:", self.imit_learning)
+        
     def toggle_episode_done(self, collision):
         """
-        RL episode finished, either max number of steps or collision detected.
+        RL or Imitation Learning episode finished, either max number of steps or collision detected.
         """
         if self.episode_start:
             if self.track_cmd is not "":
@@ -447,13 +464,16 @@ class TelloCV(object):
                 print("Episode completed, good Tommy!")
             print("Episode ", self.episode_cont, " reward: ", self.reward)
 
-            self.training_thread = threading.Thread(target=self.rl_agent.update_model, args=(self.ca_agent.model, self.episode_cont))
-            self.training_thread.start()
-            self.rl_agent.save_model(self.ca_agent.model, self.episode_cont)
+            if self.rl_training:  # Not training if imitation learning
+                self.training_thread = threading.Thread(target=self.rl_agent.update_model, args=(self.ca_agent.model, self.episode_cont))
+                self.training_thread.start()
+                self.rl_agent.save_model(self.ca_agent.model, self.episode_cont)
+            else:
+                self.rl_agent.save_memory()
             self.train_rl_sem.release()
             self.episode_start = False
         else:
-            if self.training_thread is not None:
+            if self.training_thread is not None and self.rl_training:
                 self.training_thread.join()
             print("Episode Start")
             self.episode_start = True

@@ -108,5 +108,8 @@ class RL_Agent:
     def save_model(self, model, num_episodes):
         if num_episodes % self.save_freq == 0:
             torch.save(model.state_dict(), self.save_dir + "best_model_" + str(num_episodes) + ".pth")  # Save model state dict
-            with open(self.save_dir + "memory.bin", "wb") as f:
-                pickle.dump(self.memory, f)  # Save memory
+            self.save_memory()
+                
+    def save_memory(self):
+        with open(self.save_dir + "memory.bin", "wb") as f:
+            pickle.dump(self.memory, f)  # Save memory
