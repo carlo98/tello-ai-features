@@ -11,6 +11,24 @@ import sys
 import os
 
 
+def main():
+    """
+    Training imitation learning.
+    """
+    model = tommy_net()
+    model.load_state_dict(torch.load('Collision_Avoidance/saved_models/best_model.pth', map_location=torch.device('cpu')))
+
+    device = torch.device('cpu')
+    model = model.to(device)
+
+    agent = RL_Agent(model, device)
+
+    agent.num_epochs = 50
+    agent.learning_rate = 1e-4
+    agent.update_model(model, 0)
+    agent.save_model(model, 0)
+
+
 class RL_Agent:
 
     def __init__(self, model, device):
@@ -26,6 +44,7 @@ class RL_Agent:
         self.num_epochs = 2
         self.action_size = 2
         self.train_freq = 2  # In episodes
+        self.learning_rate = 1e-6
         self.memory = deque(maxlen=1000000)
         if os.path.isfile(self.save_dir + "memory.bin"):
             with open(self.save_dir + "memory.bin", "rb") as f:
@@ -39,7 +58,7 @@ class RL_Agent:
         self.target_model = self.target_model.to(device)
         self.target_model.eval()
         
-        self.optimizer = optim.RMSprop(model.parameters(), lr=1e-6)
+        self.optimizer = optim.RMSprop(model.parameters(), lr=self.learning_rate)
         
     def getQvalue(self, reward, next_target, done):
         if done:
@@ -113,3 +132,7 @@ class RL_Agent:
     def save_memory(self):
         with open(self.save_dir + "memory.bin", "wb") as f:
             pickle.dump(self.memory, f)  # Save memory
+
+
+if __name__ == '__main__':
+    main()

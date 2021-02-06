@@ -29,7 +29,7 @@ import traceback
 import threading
 
 
-MAX_SPEED_AUTONOMOUS=20
+MAX_SPEED_AUTONOMOUS = 20
 SPEED_HAND = 40
 DISTANCE_FAC_REC = 70
 AREA_MIN = 4000
@@ -118,7 +118,7 @@ class TelloCV(object):
         self.init_drone()
         self.init_controls()
         self.thread_position = threading.Thread(target=self.compute_position)
-        self.thread_position.start()
+        self.offset_yaw = 0  # Offset for yaw
 
         # Processing frames
         self.video_initialized = False
@@ -161,9 +161,9 @@ class TelloCV(object):
             key_handler(0)
             self.new_position = False
             tmp = list(self.position)
-            tmp.append(self.drone.get_yaw())
+            tmp.append(self.drone.get_yaw() + self.offset_yaw)  # Appending current yaw + offset
             self.pose_estimator.move(np.array(tmp, dtype=np.float32))
-            self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+            #self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
             self.curr_vel = np.array([0.0, 0.0, 0.0], dtype=np.float32)
             self.track_cmd = ""
 
@@ -322,7 +322,7 @@ class TelloCV(object):
                     new_reward = 1 / self.rl_agent.max_steps
                     self.reward += new_reward
                 else:
-                   new_reward = 0
+                    new_reward = 0
                 self.train_rl_sem.acquire()
                 self.rl_agent.appendMemory(self.old_state, (lambda action: 0 if self.track_cmd == 'clockwise' else 1)(self.track_cmd), new_reward, self.current_state, 0)
                 self.train_rl_sem.release()
@@ -358,25 +358,48 @@ class TelloCV(object):
         return frame
         
     def compute_position(self):
+        x_acc = []
+        y_acc = [] 
+        z_acc = []
+        yaw = []
+        start_time_2 = time.time()
+        for i in range(20):  # Using mean over 20 readings as offset
+            acc = -self.drone.get_acceleration_z()
+            z_acc.append(acc)
+            acc = -self.drone.get_acceleration_y()
+            y_acc.append(acc)
+            acc = -self.drone.get_acceleration_x()
+            x_acc.append(acc)
+            yaw.append(self.drone.get_yaw())
+        self.offset_yaw = np.mean(yaw)
+        offset_x = np.mean(x_acc)  # Using mean over 5 readings to smooth values
+        offset_y = np.mean(y_acc)
+        offset_z = np.mean(z_acc)
+        print("Offset taken, free to takeoff")
+        z_acc = z_acc[15:]
+        y_acc = y_acc[15:]
+        x_acc = x_acc[15:]
         while not self.stop_threads:
+            z_acc.pop(0)
+            y_acc.pop(0)
+            x_acc.pop(0)
+            start_time = time.time()
+            z_acc.append(-self.drone.get_acceleration_z())
+            y_acc.append(-self.drone.get_acceleration_y())
+            x_acc.append(-self.drone.get_acceleration_x())
             if not self.new_position:
                 continue
-            start_time = time.time()
-            roll = self.drone.get_roll()*np.pi/180
-            pitch = self.drone.get_pitch()*np.pi/180
-            yaw = self.drone.get_yaw()*np.pi/180
-            Rr = np.array([[1, 0, 0], [0, np.cos(roll), -np.sin(roll)], [0, np.sin(roll), np.cos(roll)]], dtype=np.float32)
-            Rp = np.array([[np.cos(pitch), 0, np.sin(pitch)], [0, 1, 0], [-np.sin(pitch), 0, np.cos(pitch)]], dtype=np.float32)
-            Ry = np.array([[np.cos(yaw), -np.sin(yaw), 0], [np.sin(yaw), np.cos(yaw), 0], [0, 0, 1]], dtype=np.float32)
-            R = np.dot(np.dot(Rr, Rp), Ry)
-            R = R/np.cbrt(np.linalg.det(R))
-            curr_acc = np.array([self.drone.get_acceleration_y(), self.drone.get_acceleration_x(), self.drone.get_acceleration_z()], dtype=np.float32)*980.7
-            curr_acc[2] -= 980.7  # cm/s^2
-            global_acc = np.dot(R, curr_acc)
+            curr_acc = np.array([np.mean(x_acc) - offset_x, np.mean(y_acc) - offset_y, np.mean(z_acc) - offset_z], dtype=np.float32)
+            if np.abs(self.drone.get_yaw() + self.offset_yaw) >= 90:
+                curr_acc[0] *= -1
+                curr_acc[1] *= -1
+            
             time_laps = time.time()-start_time
-            self.position += self.curr_vel * time_laps + 0.5 * global_acc * (time_laps ** 2)
-            self.curr_vel += global_acc * time_laps
-            #print(self.position, self.curr_vel, global_acc)
+            self.position += (self.curr_vel * time_laps + 0.5 * curr_acc * (time_laps ** 2))
+            self.curr_vel += curr_acc * time_laps
+            tmp = time.time()-start_time_2
+            if int(tmp) % 2 == 0 and tmp-int(tmp) <= 0.2:
+                 print(self.position, self.curr_vel, curr_acc)
             
     def toggle_blocked_free(self, block_free):
         self.save_frame = True
@@ -398,15 +421,27 @@ class TelloCV(object):
         self.avoidance = not self.avoidance
         self.tracking = False
         print("avoidance:", self.avoidance)
-        
+
     def toggle_go_back(self, speed):
+        """ Handle go back to origin keypress """
+        self.go_back = True
+        return_coord = self.pose_estimator.get_current_pose()
+        print(return_coord)
+        self.drone.rotate_counter_clockwise(int(return_coord[3]))
+        self.drone.rotate_counter_clockwise(180)  # Head towards origin
+        x = int(return_coord[0]) if return_coord[0] >= 20 else 0
+        y = int(return_coord[1]) if return_coord[1] >= 20 else 0
+        z = int(return_coord[2]) if return_coord[2] >= 20 else 0
+        self.drone.go_xyz_speed(x, y, z, speed)
+
+    def toggle_go_back_2(self, speed):
         """ Handle go back to origin keypress """
         self.go_back = True
         return_path = self.pose_estimator.go_back_same_path()
         print(self.pose_estimator.get_current_pose())
         print(return_path)
         for movement in return_path:
-            self.pose_estimator.move(movement)
+            # self.pose_estimator.move(movement)
             if movement[1] > self.eps_pose:
                 cmd = "clockwise"
                 self.drone.rotate_clockwise(int(movement[1]))

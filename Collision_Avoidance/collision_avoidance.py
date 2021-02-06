@@ -128,5 +128,6 @@ class Agent:
             #print("blocked")
             return self.last_move, x # If it was turning keeps turning in the same way
 
+
 if __name__ == '__main__':
     main()
