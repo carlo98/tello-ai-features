@@ -15,9 +15,7 @@ class Pose:
         Changes current position with respect to origin.
         """
         self.pose = np.array(position)
-        print(self.pose)
         self.angle_0_360()
-        print(self.pose)
 
     def angle_0_360(self):
         """

@@ -10,6 +10,7 @@ The initial idea was to code a face recognition and tracker, then a lot of ideas
 2. [Control Commands](#control)
 3. [Collision Avoidance](#ca)
     1. [Reinforcement Learning](#rl)
+    2. [Imitation Learning](#il)
 4. [Face Recognition](#fr)
 5. [Go Back to Origin](#loc)
 6. [Camera Calibration](#cc)
@@ -113,6 +114,24 @@ Reward: +1/max_steps_per_episode if agent decides to go forward, 0 if it turns, 
 Do not attempt to train a model from scratch with this method because it requires a lot of time and it would seem nearly impossible, first get a collision avoidance model trained with 'train_model.pynb' as satisfactory as possible and then proceed with this.
 
 The model trained by RL is saved into the folder 'Collision_Avoidance/rl_saved_models'.
+
+### Imitation Learning <a name="il"></a>
+From repository's root folder:
+```
+conda activate <env>
+python3 telloCV.py
+```
+In order to start/stop press '5'.
+
+By moving the drone around one can gather data (state, reward, done, new state) that will be used to train the RL agent, thus removing the need for a long exploration phase during reinforcement learning.
+
+In order to train the agent with the data gathered with imitation learning do, from repository's root folder::
+```
+conda activate <env>
+python3 Collision_Avoidance/RL.py
+```
+this will train the agent using the memory saved in folder 'Collision_Avoidance/rl_saved_models' and a pre-trained network available in 'Collision_Avoidance/saved_models'.
+
 
 ## Face recognition <a name="fr"></a>
 From repository's root folder:

@@ -1,9 +1,9 @@
 """
-   IMPORTANT: Only one feature (1, 2) can be activate at any time.
+   IMPORTANT: Only one feature (1 - 5) can be active at any time.
  - 1 to toggle collision avoidance
  - 2 to toggle tracking
  - 3 to toggle reinforcement learning training for collision avoidance (If activated then also collision avoidance will be ON)
- - 4 to toggle go back to starting point
+ - 4 to toggle go back to starting point (shortest path, no collision avoidance)
  - 5 to toggle imitation learning
  - x to end/start episode of RL
  - F to save frame as free (collision avoidance)
@@ -32,7 +32,7 @@ import threading
 MAX_SPEED_AUTONOMOUS = 20
 SPEED_HAND = 40
 DISTANCE_FAC_REC = 70
-AREA_MIN = 4000
+AREA_MIN = 6000
 AREA_MAX = 8000
 
 def main():
@@ -118,6 +118,7 @@ class TelloCV(object):
         self.init_drone()
         self.init_controls()
         self.thread_position = threading.Thread(target=self.compute_position)
+        self.thread_position.start()
         self.offset_yaw = 0  # Offset for yaw
 
         # Processing frames
@@ -163,8 +164,7 @@ class TelloCV(object):
             tmp = list(self.position)
             tmp.append(self.drone.get_yaw() + self.offset_yaw)  # Appending current yaw + offset
             self.pose_estimator.move(np.array(tmp, dtype=np.float32))
-            #self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-            self.curr_vel = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+            self.curr_vel = np.array([0.0, 0.0, 0.0], dtype=np.float32)  # Setting velocity to zeros, because deceleration is too fast to be detected.
             self.track_cmd = ""
 
     def init_controls(self):
@@ -372,13 +372,13 @@ class TelloCV(object):
             x_acc.append(acc)
             yaw.append(self.drone.get_yaw())
         self.offset_yaw = np.mean(yaw)
-        offset_x = np.mean(x_acc)  # Using mean over 5 readings to smooth values
+        offset_x = np.mean(x_acc)
         offset_y = np.mean(y_acc)
         offset_z = np.mean(z_acc)
         print("Offset taken, free to takeoff")
-        z_acc = z_acc[15:]
-        y_acc = y_acc[15:]
-        x_acc = x_acc[15:]
+        z_acc = z_acc[17:]  # Using mean over 3 readings to smooth values
+        y_acc = y_acc[17:]
+        x_acc = x_acc[17:]
         while not self.stop_threads:
             z_acc.pop(0)
             y_acc.pop(0)
@@ -387,19 +387,17 @@ class TelloCV(object):
             z_acc.append(-self.drone.get_acceleration_z())
             y_acc.append(-self.drone.get_acceleration_y())
             x_acc.append(-self.drone.get_acceleration_x())
+            yaw = self.drone.get_yaw()
             if not self.new_position:
                 continue
             curr_acc = np.array([np.mean(x_acc) - offset_x, np.mean(y_acc) - offset_y, np.mean(z_acc) - offset_z], dtype=np.float32)
-            if np.abs(self.drone.get_yaw() + self.offset_yaw) >= 90:
-                curr_acc[0] *= -1
-                curr_acc[1] *= -1
+            # From drone to world reference system (x* = xcos(yaw), y* = ycos(yaw), z* = z), movement of two types (vertical 1D or horizontal 2D)
+            curr_acc[0] = np.cos(yaw*np.pi/180) * curr_acc[0] 
+            curr_acc[1] = np.cos(yaw*np.pi/180) * curr_acc[1]
             
             time_laps = time.time()-start_time
             self.position += (self.curr_vel * time_laps + 0.5 * curr_acc * (time_laps ** 2))
             self.curr_vel += curr_acc * time_laps
-            tmp = time.time()-start_time_2
-            if int(tmp) % 2 == 0 and tmp-int(tmp) <= 0.2:
-                 print(self.position, self.curr_vel, curr_acc)
             
     def toggle_blocked_free(self, block_free):
         self.save_frame = True
@@ -429,10 +427,11 @@ class TelloCV(object):
         print(return_coord)
         self.drone.rotate_counter_clockwise(int(return_coord[3]))
         self.drone.rotate_counter_clockwise(180)  # Head towards origin
-        x = int(return_coord[0]) if return_coord[0] >= 20 else 0
-        y = int(return_coord[1]) if return_coord[1] >= 20 else 0
-        z = int(return_coord[2]) if return_coord[2] >= 20 else 0
+        x = int(return_coord[0]) if np.abs(return_coord[0]) >= 20 else 0
+        y = int(return_coord[1]) if np.abs(return_coord[1]) >= 20 else 0
+        z = int(return_coord[2]) if np.abs(return_coord[2]) >= 20 else 0
         self.drone.go_xyz_speed(x, y, z, speed)
+        self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
 
     def toggle_go_back_2(self, speed):
         """ Handle go back to origin keypress """
