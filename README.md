@@ -23,12 +23,7 @@ Install anaconda and opencv and then:
 conda create --name <env> python=3.7 # or python=3.6
 conda activate <env>
 conda install pip
-pip install numpy av pynput face-recognition sklearn torch jupyter
-```
-
-djitellopy:
-```
-pip install djitellopy2
+pip install numpy av pynput face-recognition sklearn torch jupyter djitellopy2
 ```
 
 For collision avoidance, in repository's root folder do:
