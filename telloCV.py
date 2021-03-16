@@ -15,7 +15,6 @@ import os
 import copy
 from djitellopy.tello import Tello
 import numpy as np
-import av
 import cv2
 from pynput import keyboard
 from Face_Recognition.face_rec_tracker import Tracker
