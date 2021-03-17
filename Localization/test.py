@@ -1,10 +1,11 @@
 from pose_estimation import Pose
+import numpy as np
 
 p = Pose()
-p.move(dist=2)
-p.move(dist=1, vertical=True)
-p.move(yaw=30)
-p.move(dist=10)
+p.move(np.array([0.0, 0.0, 0.0, 0.0]))
+p.move(np.array([0.0, 0.0, 1.0, 0.0]))
+p.move(np.array([0.0, 0.0, 0.0, 30.0]))
+speed=np.array([10.0, 0.0, 0.0, 0.0])
 path = p.go_back_same_path()
 print(path)
 print(p.get_current_pose())

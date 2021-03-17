@@ -9,7 +9,7 @@ import face_recognition
 from sklearn import svm
 import numpy as np
 
-OBJ = 'person_2' # Face to follow
+OBJ = 'person_7' # Face to follow
 IMAGE_SCALING = 0.50 # Reduce image before searching for faces, faster but lower recall
 
 def main():

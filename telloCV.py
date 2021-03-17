@@ -396,8 +396,8 @@ class TelloCV(object):
             curr_acc[1] = np.cos(yaw*np.pi/180) * curr_acc[1]
             
             time_laps = time.time()-start_time
-            self.position += (self.curr_vel * time_laps + 0.5 * curr_acc * (time_laps ** 2))
-            self.curr_vel += curr_acc * time_laps
+            self.position += (self.curr_vel * time_laps + 0.5 * curr_acc * (time_laps ** 2))  # Position update 
+            self.curr_vel += curr_acc * time_laps  # Velocity update
             
     def toggle_blocked_free(self, block_free):
         self.save_frame = True
@@ -427,11 +427,11 @@ class TelloCV(object):
         print(return_coord)
         self.drone.rotate_counter_clockwise(int(return_coord[3]))
         self.drone.rotate_counter_clockwise(180)  # Head towards origin
-        x = int(return_coord[0]) if np.abs(return_coord[0]) >= 20 else 0
-        y = int(return_coord[1]) if np.abs(return_coord[1]) >= 20 else 0
-        z = int(return_coord[2]) if np.abs(return_coord[2]) >= 20 else 0
+        x = int(return_coord[0]) if np.abs(return_coord[0]) >= 20 else 0  # x-axis
+        y = int(return_coord[1]) if np.abs(return_coord[1]) >= 20 else 0  # y-axis
+        z = int(return_coord[2]) if np.abs(return_coord[2]) >= 20 else 0  # z-axis
         self.drone.go_xyz_speed(x, y, z, speed)
-        self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)  # Position reset
 
     def toggle_go_back_2(self, speed):
         """ Handle go back to origin keypress """
@@ -485,7 +485,7 @@ class TelloCV(object):
                 self.drone.send_rc_control(0, -self.speed, 0, 0)  # Avoid crash
                 self.track_cmd = "backward"
                 time.sleep(0.5)
-                self.drone.send_rc_control(0, 0, 0, 0)
+                self.drone.send_rc_control(0, 0, 0, 0)  # Stopping drone
                 self.track_cmd = ""
             self.speed = 0
             self.train_rl_sem.acquire()
