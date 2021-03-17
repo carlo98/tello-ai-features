@@ -7,6 +7,7 @@ The initial idea was to code a face recognition and tracker, then a lot of ideas
 
 # Table of contents
 1. [Installation](#installation)
+    1. [Jetson Nano](#jetsonano)
 2. [Control Commands](#control)
 3. [Collision Avoidance](#ca)
     1. [Reinforcement Learning](#rl)
@@ -23,16 +24,13 @@ Install anaconda and opencv and then:
 conda create --name <env> python=3.7 # or python=3.6
 conda activate <env>
 conda install pip
-pip install numpy av pynput face-recognition sklearn torch jupyter
-```
-
-djitellopy:
-```
-pip install djitellopy2
+pip install numpy pynput face-recognition sklearn torch jupyter djitellopy2
+sudo apt install git-lfs
 ```
 
 For collision avoidance, in repository's root folder do:
 ```
+git lfs pull
 mkdir Collision_Avoidance/saved_models
 mkdir Collision_Avoidance/data
 mkdir Collision_Avoidance/data/blocked
@@ -55,6 +53,27 @@ mkdir Face_Recognition/train_dir
 For camera calibration, in repository's root folder do:
 ```
 mkdir Camera_Calibration/chessboards
+```
+
+### Jetson Nano <a name="jetsonano"></a>
+In case you're planning to use this code on a Jetson Nano, a few thing should be done in a different way:
+
+In order to use sklearn:
+```
+sudo -H pip3 install scikit-learn
+```
+To install torch, download the wheels from [PyTorch Jetson Nano](https://forums.developer.nvidia.com/t/pytorch-for-jetson-version-1-8-0-now-available/72048) and build it with:
+```
+python3 -m pip install <filename>
+python3 -m pip install torchvision
+```
+To install face-recognition, first increase the swap to 4GB, in order to build 'dlib':
+```
+sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+pyhton3 -m pip install face-recognition
 ```
 
 ## Control commands <a name="control"></a>
@@ -164,7 +183,7 @@ Always on, in order to go back to origin press '4'.
 
 At the moment a lot of hypotesis are made in order to simplify the setting, but in future will be removed one at a time.
 
-For now it works only with manual controls.
+For now it works only with manual controls and it is very INACCURATE.
 
 ## Camera Calibration <a name="cc"></a>
 Save 15-20 images of a chessboard, made with the camera of tello, in the folder 'Camera_Calibration/chessboards' and call them n.jpg, (n=0, 1, ...).
