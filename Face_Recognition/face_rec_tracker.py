@@ -2,18 +2,19 @@
 import argparse
 import time
 import cv2
-import imutils
 from imutils.video import VideoStream
 import pickle
 import face_recognition
-from sklearn import svm
-import numpy as np
+from utility import show, get_frame
 
-OBJ = 'person_7' # Face to follow
-IMAGE_SCALING = 0.50 # Reduce image before searching for faces, faster but lower recall
+OBJ = 'person_7'  # Face to follow
+IMAGE_SCALING = 0.50  # Reduce image before searching for faces, faster but lower recall
+
 
 def main():
-    """Handles inpur from file or stream, tests the tracker class"""
+    """
+    Handles inpur from file or stream, tests the tracker class
+    """
     arg_parse = argparse.ArgumentParser()
     arg_parse.add_argument("-v", "--video",
                            help="path to the (optional) video file")
@@ -57,37 +58,20 @@ def main():
     cv2.destroyAllWindows()
 
 
-def get_frame(vid_stream, stream):
-    """grab the current video frame"""
-    frame = vid_stream.read()
-    # handle the frame from VideoCapture or VideoStream
-    frame = frame[1] if stream else frame
-    # if we are viewing a video and we did not grab a frame,
-    # then we have reached the end of the video
-    if frame is None:
-        return None
-    else:
-        frame = imutils.resize(frame, width=600)
-        return frame
-
-
-def show(frame):
-    """show the frame to cv2 window"""
-    cv2.imshow("Frame", frame)
-    key = cv2.waitKey(1) & 0xFF
-
-    # if the 'q' key is pressed, stop the loop
-    if key == ord("q"):
-        exit()
-
-
 class Tracker:
     """
     A cnn tracker and face recognition, it will look for object and
-    create an x and y offset valuefrom the midpoint
+    create an x and y offset value from the midpoint
     """
 
     def __init__(self):
+        self.height = 0
+        self.width = 0
+        self.midx = 0
+        self.midy = 0
+        self.xoffset = 0
+        self.yoffset = 0
+        self.previous_detection = [(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)]
         # Load SVM binarized
         with open("Face_Recognition/svm_fam.bin", "rb") as f:
             self.clf = pickle.load(f)
@@ -97,20 +81,21 @@ class Tracker:
         self.width = width
         self.midx = int(width / 2)
         self.midy = int(height / 2)
-        self.xoffset = 0
-        self.yoffset = 0
-        self.previous_detection = [(0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)]
 
     def draw_arrows(self, frame):
-        """Show the direction vector output in the cv2 window"""
-        #cv2.putText(frame,"Color:", (0, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, thickness=2)
+        """
+        Shows the direction vector output in the cv2 window
+        """
+        # cv2.putText(frame,"Color:", (0, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, thickness=2)
         cv2.arrowedLine(frame, (self.midx, self.midy),
                         (self.midx + self.previous_detection[-1][0], self.midy - self.previous_detection[-1][1]),
                         (0, 0, 255), 5)
         return frame
 
     def track(self, frame):
-        """NN Tracker"""
+        """
+        NN Tracker
+        """
         start_time = time.time()
         # Resize frame of video to 1/2 size for faster face recognition processing
         small_frame = cv2.resize(frame, (0, 0), fx=IMAGE_SCALING, fy=IMAGE_SCALING)
@@ -127,12 +112,13 @@ class Tracker:
             face_names.append(*name)
         print("Inference time: ", time.time()-start_time)
 
-        found = False
+        self.xoffset = 0
+        self.yoffset = 0
+        area = 0
         # Display the results
         for (top, right, bottom, left), name in zip(face_locations, face_names):
             if name != OBJ:
                 continue
-            found = True
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             factor = int(1/IMAGE_SCALING)
             top *= factor
@@ -142,7 +128,6 @@ class Tracker:
 
             # Draw a box around the face
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-            
 
             # Draw a label with a name below the face
             cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
@@ -151,7 +136,7 @@ class Tracker:
        
             x = (right-left)/2
             y = (top-bottom)/2
-            #radius = np.max([x, y])
+            # radius = np.max([x, y])
             x_c = int(x+left)
             y_c = int(y+bottom)
             
@@ -159,16 +144,14 @@ class Tracker:
 
             self.xoffset = int(x_c - self.midx)
             self.yoffset = int(self.midy - y_c)
-            area = (-4*x*y) # Minus due to y-axis
-        if not found:
-            self.xoffset = 0
-            self.yoffset = 0
-            area = 0
+            area = (-4*x*y)  # Minus due to y-axis
+
         # Display the resulting image
         self.draw_arrows(frame)
-        self.previous_detection.append([self.xoffset, self.yoffset, area])
+        self.previous_detection.append((self.xoffset, self.yoffset, area))
         self.previous_detection.pop(0)
         return self.previous_detection, frame
+
 
 if __name__ == '__main__':
     main()

@@ -53,7 +53,7 @@ for person in train_dir:
         face = face_recognition.load_image_file("train_dir/" + person + "/" + person_img)
         face_bounding_boxes = face_recognition.face_locations(face)
 
-        #If training image contains exactly one face
+        # If training image contains exactly one face
         if len(face_bounding_boxes) == 1:
             face_enc = face_recognition.face_encodings(face)[0]
             # Add face encoding for current image with corresponding label (name) to the training data
@@ -66,7 +66,7 @@ for person in train_dir:
 # Create and train the SVC classifier
 clf = svm.SVC(gamma='scale')
 print("Clf initialized, starting fit.")
-clf.fit(encodings,names)
+clf.fit(encodings, names)
 with open("svm_fam.bin", "wb") as f:
     pickle.dump(clf, f)
     
@@ -102,7 +102,6 @@ while True:
             face_names.append(*name)
         print(time.time()-start_time)
     process_this_frame = not process_this_frame
-
 
     # Display the results
     for (top, right, bottom, left), name in zip(face_locations, face_names):

@@ -7,7 +7,7 @@
  - 5 to toggle imitation learning
  - x to end/start episode of RL
  - F to save frame as free (collision avoidance)
- - B to save frame as blocked (collision avoidance) 
+ - B to save frame as blocked (collision avoidance)
 """
 import time
 import datetime
@@ -22,7 +22,7 @@ from Collision_Avoidance.collision_avoidance import Agent
 from Collision_Avoidance.RL import RL_Agent
 from Camera_Calibration.process_image import FrameProc
 from Localization.pose_estimation import Pose
-from scipy.interpolate import interp1d
+from utility import interpolate_readings, show
 import sys
 import traceback
 import threading
@@ -34,8 +34,11 @@ DISTANCE_FAC_REC = 70
 AREA_MIN = 6000
 AREA_MAX = 8000
 
+
 def main():
-    """ Create a tello controller and show the video feed."""
+    """
+    Creates a tello controller and show the video feed.
+    """
     tellotrack = TelloCV()
     
     try:
@@ -56,16 +59,6 @@ def main():
         tellotrack.stop_threads = True
         tellotrack.thread_position.join()
         cv2.destroyAllWindows()
-
-
-def show(frame):
-    """show the frame to cv2 window"""
-    cv2.imshow("Frame", frame)
-    key = cv2.waitKey(1) & 0xFF
-
-    # if the 'q' key is pressed, stop the loop
-    if key == ord("q"):
-        exit()    
 
 
 class TelloCV(object):
@@ -109,12 +102,14 @@ class TelloCV(object):
         self.area_min = AREA_MIN
         self.area_max = AREA_MAX
         self.track_cmd = ""
+        self.key_listener = None
         self.ca_agent = Agent()
         self.rl_agent = RL_Agent(self.ca_agent.model, self.ca_agent.device)
         self.tracker = Tracker()
         self.pose_estimator = Pose()
         self.drone = Tello()
         self.init_drone()
+        self.controls = dict()
         self.init_controls()
         self.thread_position = threading.Thread(target=self.compute_position)
         self.thread_position.start()
@@ -125,12 +120,16 @@ class TelloCV(object):
         self.frameproc = None
 
     def init_drone(self):
-        """Connect, uneable streaming and subscribe to events"""
+        """
+        Connect, uneable streaming and subscribe to events
+        """
         self.drone.connect()
         self.drone.streamon()
 
     def on_press(self, keyname):
-        """handler for keyboard listener"""
+        """
+        Handler for keyboard listener.
+        """
         if self.keydown:
             return
         try:
@@ -143,7 +142,7 @@ class TelloCV(object):
             if keyname in self.controls:
                 key_handler = self.controls[keyname]
                 if keyname in ['1', '2', '3', '4', 'x']:
-                        key_handler(self.speed)
+                    key_handler(self.speed)
                 else:
                     if keyname in ['w', 'a', 's', 'd', 'Key.left', 'Key.right', 'Key.up', 'Key.down']:
                         self.new_position = True
@@ -152,7 +151,9 @@ class TelloCV(object):
             print('special key {0} pressed'.format(keyname))
 
     def on_release(self, keyname):
-        """Reset on key up from keyboard listener"""
+        """
+        Reset on key up from keyboard listener
+        """
         self.keydown = False
         keyname = str(keyname).strip('\'')
         print('-' + keyname)
@@ -167,7 +168,9 @@ class TelloCV(object):
             self.track_cmd = ""
 
     def init_controls(self):
-        """Define keys and add listener"""
+        """
+        Define keys and add listener
+        """
         self.controls = {
             'w': lambda speed: self.drone.send_rc_control(0, speed, 0, 0),
             's': lambda speed: self.drone.send_rc_control(0, -speed, 0, 0),
@@ -188,46 +191,20 @@ class TelloCV(object):
             'f': lambda speed: self.toggle_blocked_free(1),
             '1': lambda speed: self.toggle_collisionAvoidance(speed),
             '2': lambda speed: self.toggle_tracking(speed),
-            '3': lambda speed: self.toggle_rl_training(speed),
+            '3': lambda: self.toggle_rl_training(),
             '4': lambda speed: self.toggle_go_back(speed),
-            '5': lambda speed: self.toggle_imit_learning(speed),
+            '5': lambda: self.toggle_imit_learning(),
             # Reinforcement learning commands
             'x': lambda speed: self.toggle_episode_done(True),
         }
         self.key_listener = keyboard.Listener(on_press=self.on_press,
                                               on_release=self.on_release)
         self.key_listener.start()
-        
-    def interpolate_readings(self, raw_readings):
-        """
-        Predicts next position of target
-        """
-        readings = []
-        readings_index = []
-        flag = True # Set to false if last reading has no face
-        for i, reading in enumerate(raw_readings):
-            if reading[2] != 0:
-                readings.append(reading)
-                readings_index.append(i)
-            elif i == len(raw_readings)-1:
-                flag = False
-
-        if len(readings) >= 2:
-            readings = np.array(readings)
-            fx = interp1d(readings_index, readings[:, 0], fill_value="extrapolate")
-            fy = interp1d(readings_index, readings[:, 1], fill_value="extrapolate")
-            farea = interp1d(readings_index, readings[:, 2], fill_value="extrapolate")
-            return fx(len(raw_readings)), fy(len(raw_readings)), farea(len(raw_readings))
-            
-        # If only one reading available using it only if it is the most recent one
-        if len(readings) == 1 and flag:
-            return readings[0][0], readings[0][1], readings[0][2]
-
-        return -1, -1, -1
 
     def process_frame(self, frame):
-        """converts frame to cv2 image and show"""
-        
+        """
+        Converts frame to cv2 image and
+        """
         x = np.array(frame)
         # Get undistorted frame
         x = self.frameproc.undistort_frame(x)
@@ -243,7 +220,7 @@ class TelloCV(object):
                 cv2.imwrite("Collision_Avoidance/data/free/"+datetime.datetime.now().strftime(self.date_fmt)+".png", x)
             self.save_frame = False
             
-        ## Start Collision Avoidance code
+        # Start Collision Avoidance code
         if self.avoidance:
             cmd_ca_agent, display_frame = self.ca_agent.track(x)
             if cmd_ca_agent == 1:
@@ -255,7 +232,7 @@ class TelloCV(object):
                     self.drone.send_rc_control(0, self.speed, 0, 0)
                     self.track_cmd = "forward"
                 
-            ## Start Reinforcement Learning code
+            # Start Reinforcement Learning code
             if self.rl_training and self.episode_start:
                 self.current_state = display_frame.get()
                 if self.current_state is not None and self.old_state is not None:
@@ -271,15 +248,15 @@ class TelloCV(object):
                         self.toggle_episode_done(False)
                     self.current_step += 1
                 self.old_state = copy.deepcopy(self.current_state)
-            ## End Reinforcement Learning code
+            # End Reinforcement Learning code
                 
             image = display_frame
-        ## End Collision Avoidance code
+        # End Collision Avoidance code
         
-        ## Start Tracking code
+        # Start Tracking code
         elif self.tracking:
             readings, display_frame = self.tracker.track(x)
-            xoff, yoff, distance_measure = self.interpolate_readings(copy.deepcopy(readings))
+            xoff, yoff, distance_measure = interpolate_readings(copy.deepcopy(readings))
             if xoff == -1:
                 if self.track_cmd is not "":
                     self.drone.send_rc_control(0, 0, 0, 0)
@@ -310,9 +287,9 @@ class TelloCV(object):
                     self.track_cmd = ""
             
             image = cv2.cvtColor(display_frame, cv2.COLOR_RGB2BGR)
-        ## End Tracking code
+        # End Tracking code
         
-        ## Start imitation learning
+        # Start imitation learning
         if self.imit_learning:
             _, display_frame = self.ca_agent.preprocess(x)
             self.current_state = display_frame.get()
@@ -329,7 +306,7 @@ class TelloCV(object):
                     self.toggle_episode_done(False)
                 self.current_step += 1
             self.old_state = copy.deepcopy(self.current_state)
-        ## End imitation learning
+        # End imitation learning
         
         if cmd is not self.track_cmd:
             if cmd is not "":
@@ -339,15 +316,11 @@ class TelloCV(object):
         return image
 
     def write_hud(self, frame):
-        """Draw drone info, tracking and record on frame"""
-        #stats = self.prev_flight_data.split('|')
-        stats = []
-        #stats.append("Battery: " + str(self.drone.get_battery()))
-        #stats.append("Wifi SNR: " + str(self.drone.query_wifi_signal_noise_ratio()))
-        stats.append("Tracking:" + str(self.tracking))
-        stats.append("Collision Avoidance NN:" + str(self.avoidance))
-        stats.append("RL Training:" + str(self.rl_training))
-        stats.append("Go Back:" + str(self.go_back))
+        """
+        Draws drone info, tracking and record on frame
+        """
+        stats = ["Tracking:" + str(self.tracking), "Collision Avoidance NN:" + str(self.avoidance),
+                 "RL Training:" + str(self.rl_training), "Go Back:" + str(self.go_back)]
 
         for idx, stat in enumerate(stats):
             text = stat.lstrip()
@@ -361,7 +334,6 @@ class TelloCV(object):
         y_acc = [] 
         z_acc = []
         yaw = []
-        start_time_2 = time.time()
         for i in range(20):  # Using mean over 20 readings as offset
             acc = -self.drone.get_acceleration_z()
             z_acc.append(acc)
@@ -403,7 +375,9 @@ class TelloCV(object):
         self.blocked_free = block_free
 
     def toggle_tracking(self, speed):
-        """ Handle tracking keypress"""
+        """
+        Handles tracking keypress
+        """
         if speed == 0:  # handle key up event
             return
         self.tracking = not self.tracking
@@ -412,7 +386,9 @@ class TelloCV(object):
         print("tracking:", self.tracking)
         
     def toggle_collisionAvoidance(self, speed):
-        """ Handle avoidance keypress"""
+        """
+        Handles avoidance keypress
+        """
         if speed == 0:  # handle key up event
             return
         self.avoidance = not self.avoidance
@@ -420,7 +396,9 @@ class TelloCV(object):
         print("avoidance:", self.avoidance)
 
     def toggle_go_back(self, speed):
-        """ Handle go back to origin keypress """
+        """
+        Handles go back to origin keypress
+        """
         self.go_back = True
         return_coord = self.pose_estimator.get_current_pose()
         print(return_coord)
@@ -432,8 +410,10 @@ class TelloCV(object):
         self.drone.go_xyz_speed(x, y, z, speed)
         self.position = np.array([0.0, 0.0, 0.0], dtype=np.float32)  # Position reset
 
-    def toggle_go_back_2(self, speed):
-        """ Handle go back to origin keypress """
+    def toggle_go_back_2(self):
+        """
+        Handles go back to origin keypress
+        """
         self.go_back = True
         return_path = self.pose_estimator.go_back_same_path()
         print(self.pose_estimator.get_current_pose())
@@ -460,16 +440,20 @@ class TelloCV(object):
                 self.drone.move_down(int(np.abs(movement[0])))
             self.track_cmd = cmd
 
-    def toggle_rl_training(self, speed):
-        """ Handle reinforcement learning training keypress """
+    def toggle_rl_training(self):
+        """
+        Handles reinforcement learning training keypress
+        """
         self.rl_training = not self.rl_training
         self.avoidance = self.rl_training
         self.tracking = False
         print("RL training:", self.rl_training)
         print("avoidance:", self.avoidance)
         
-    def toggle_imit_learning(self, speed):
-        """ Handle imitation learning keypress """
+    def toggle_imit_learning(self):
+        """
+        Handles imitation learning keypress
+        """
         self.imit_learning = not self.imit_learning
         self.tracking = False
         print("Imitation learning:", self.imit_learning)

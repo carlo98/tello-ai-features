@@ -3,9 +3,7 @@ Collision avoidance with NN
 """
 import argparse
 from imutils.video import VideoStream
-import imutils
 import torch
-import torchvision
 import cv2
 import numpy as np
 import torch.nn.functional as F
@@ -13,9 +11,13 @@ import time
 import random
 from Collision_Avoidance.model import tommy_net
 from Collision_Avoidance.saliency_map import SaliencyDoG
+from utility import show, get_frame
+
 
 def main():
-    """Handles inpur from file or stream, tests the tracker class"""
+    """
+    Handles input from file or stream, tests the tracker class
+    """
     arg_parse = argparse.ArgumentParser()
     arg_parse.add_argument("-v", "--video",
                            help="path to the (optional) video file")
@@ -34,7 +36,6 @@ def main():
     time.sleep(2.0)
     stream = args.get("video", False)
     frame = get_frame(vid_stream, stream)
-    height, width = frame.shape[0], frame.shape[1]
     tracker = Agent()
 
     # keep looping until no more frames
@@ -58,75 +59,54 @@ def main():
     cv2.destroyAllWindows()
 
 
-def get_frame(vid_stream, stream):
-    """grab the current video frame"""
-    frame = vid_stream.read()
-    # handle the frame from VideoCapture or VideoStream
-    frame = frame[1] if stream else frame
-    # if we are viewing a video and we did not grab a frame,
-    # then we have reached the end of the video
-    if frame is None:
-        return None
-    else:
-        frame = imutils.resize(frame, width=224, height=224)
-        return frame
-
-
-def show(frame):
-    """show the frame to cv2 window"""
-    cv2.imshow("Frame", frame)
-    key = cv2.waitKey(1) & 0xFF
-
-    # if the 'q' key is pressed, stop the loop
-    if key == ord("q"):
-        exit()
-
-
 class Agent:
 
     def __init__(self):
         self.model = tommy_net()
-        self.model.load_state_dict(torch.load('Collision_Avoidance/saved_models/best_model.pth', map_location=torch.device('cpu')))
+        self.model.load_state_dict(
+            torch.load('Collision_Avoidance/saved_models/best_model.pth', map_location=torch.device('cpu')))
 
         self.device = torch.device('cpu')
         self.model = self.model.to(self.device)
-        
+
         self.saliency_mapper = SaliencyDoG(pyramid_height=5, shift=5, ch_3=False,
-                              low_pass_filter=True, multi_layer_map=False)
+                                           low_pass_filter=True, multi_layer_map=False)
         self.last_move = 1
-        
+
     def preprocess(self, x):
         x = self.saliency_mapper.generate_saliency(x)
-        x = cv2.medianBlur(x, 9) # Reduce impulse noise
-        x = cv2.GaussianBlur(x, (3, 3), 0.5) # Reduce linear noise
+        x = cv2.medianBlur(x, 9)  # Reduce impulse noise
+        x = cv2.GaussianBlur(x, (3, 3), 0.5)  # Reduce linear noise
         y = torch.from_numpy(x.get()).float()
         y = y.to(self.device)
         y = y[None, None, ...]
         return y, x
 
     def track(self, frame):
-        """NN Tracker"""
-        #start_time = time.time()
+        """
+        NN Tracker
+        """
+        # start_time = time.time()
         y, x = self.preprocess(frame)
         y = self.model(y)
-        
-        #print("Inference time: ", time.time()-start_time)
-    
+
+        # print("Inference time: ", time.time()-start_time)
+
         # we apply the `softmax` function to normalize the output vector so it sums to 1 (which makes it a probability distribution)
         y = F.softmax(y, dim=1)
-    
-        #print(y)
+
+        # print(y)
         prob_blocked = float(y.flatten()[0])
-    
+
         if prob_blocked < 0.30:
             self.last_move = 0
-            return 0, x # forward
+            return 0, x  # forward
         else:
             if self.last_move == 0:
                 self.last_move = random.randint(1, 2)  # Left or right at random if last move was going forward
                 return self.last_move, x
-            #print("blocked")
-            return self.last_move, x # If it was turning keeps turning in the same way
+            # print("blocked")
+            return self.last_move, x  # If it was turning keeps turning in the same way
 
 
 if __name__ == '__main__':

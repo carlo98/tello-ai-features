@@ -72,4 +72,3 @@ class Pose:
         Returns current position with respect to origin, in metres
         """
         return self.poses[-1]
-

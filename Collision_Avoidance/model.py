@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 class Tommy(nn.Module):
 
     def __init__(self, num_classes=2):

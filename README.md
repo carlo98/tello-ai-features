@@ -28,6 +28,11 @@ pip install numpy pynput face-recognition sklearn torch jupyter djitellopy2
 sudo apt install git-lfs
 ```
 
+If you're having problems installing 'djitellopy2' try doing:
+```
+pip install scikit-build
+```
+
 For collision avoidance, in repository's root folder do:
 ```
 git lfs pull
