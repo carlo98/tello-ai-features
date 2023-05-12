@@ -16,8 +16,10 @@ The initial idea was to code a face recognition and tracker, then a lot of ideas
 7. [References](#ref)
 
 ## Installation <a name="installation"></a>
-Install anaconda and opencv and then:
+Install anaconda and then:
 ```
+sudo apt update
+sudo apt install python3-opencv cmake build-essential
 conda create --name <env> python=3.7 # or python=3.6
 conda activate <env>
 conda install pip
